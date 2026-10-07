@@ -5,3 +5,13 @@
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# 영상·모델은 용량이 크고, 영상에는 승객 얼굴이 담길 수 있음
+data/*
+!data/.gitkeep
+models/*
+!models/.gitkeep
+
+__pycache__/
+*.pyc
+.vscode/
