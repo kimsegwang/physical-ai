@@ -1,0 +1,31 @@
+{
+  "camera_id": "stationA_cam03",
+  "preprocess": {
+    "flicker_correction": true,
+    "clahe_mode": "auto",
+    "roi": [0.15, 0.1, 0.85, 0.95],
+    "masks": [
+      [[0.15, 0.1], [0.3, 0.1], [0.3, 0.35], [0.15, 0.35]]
+    ],
+    "wet_floor_masks": [
+      [[0.15, 0.8], [0.85, 0.8], [0.85, 0.95], [0.15, 0.95]]
+    ]
+  },
+  "detection": {
+    "ref_person_area_top": 0.012,
+    "ref_person_area_bottom": 0.02
+  },
+  "counting": {
+    "anchor": "bottom",
+    "a_to_b": "out",
+    "gates": [
+      {"name": "gate1", "line_a": [[0.2, 0.5], [0.5, 0.5]], "line_b": [[0.2, 0.6], [0.5, 0.6]]},
+      {"name": "gate2", "line_a": [[0.5, 0.5], [0.8, 0.5]], "line_b": [[0.5, 0.6], [0.8, 0.6]]}
+    ]
+  },
+  "adaptive": {
+    "mode_profiles": {
+      "peak": {"tracking": {"track_buffer": 50}}
+    }
+  }
+}

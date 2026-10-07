@@ -1,0 +1,140 @@
+{
+  "camera_id": "cam0",
+  "preprocess": {
+    "input_size": 640,
+    "process_fps": 10.0,
+    "stabilization": false,
+    "stab_width": 160,
+    "stab_max_shift": 0.1,
+    "roi": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+    ],
+    "masks": [],
+    "wet_floor_masks": [],
+    "apply_wet_floor_masks": false,
+    "flicker_correction": false,
+    "flicker_ema": 0.1,
+    "flicker_gain_min": 0.8,
+    "flicker_gain_max": 1.25,
+    "clahe_mode": "off",
+    "clahe_clip_limit": 2.0,
+    "clahe_tile": 8,
+    "clahe_check_interval": 10,
+    "clahe_dark_mean": 70.0,
+    "clahe_backlight_ratio": 0.2,
+    "clahe_dark_level": 40,
+    "clahe_bright_level": 220
+  },
+  "detection": {
+    "model_path": "models/yolov8n.pt",
+    "device": "",
+    "conf_threshold": 0.4,
+    "low_conf_threshold": 0.1,
+    "nms_iou": 0.5,
+    "person_class": 0,
+    "aux_classes": [
+      28
+    ],
+    "ref_person_area_top": 0.0,
+    "ref_person_area_bottom": 0.0,
+    "min_area_ratio": 0.35,
+    "max_area_ratio": 2.5
+  },
+  "tracking": {
+    "track_buffer": 30,
+    "match_iou_min": 0.2,
+    "low_match_iou_min": 0.5,
+    "velocity_smoothing": 0.5
+  },
+  "counting": {
+    "gates": [
+      {
+        "name": "gate1",
+        "line_a": [
+          [
+            0.05,
+            0.45
+          ],
+          [
+            0.95,
+            0.45
+          ]
+        ],
+        "line_b": [
+          [
+            0.05,
+            0.55
+          ],
+          [
+            0.95,
+            0.55
+          ]
+        ]
+      }
+    ],
+    "a_to_b": "out",
+    "anchor": "center",
+    "min_track_len": 5,
+    "recount_block_sec": 5.0
+  },
+  "aggregation": {
+    "gate_limit_per_min": 60,
+    "spike_ratio": 3.0,
+    "spike_min_diff": 10,
+    "spike_history_min": 15,
+    "spike_min_history": 5
+  },
+  "adaptive": {
+    "enabled": true,
+    "peak_enter_per_gate": 10.0,
+    "peak_exit_per_gate": 7.0,
+    "quiet_enter_per_gate": 1.0,
+    "quiet_exit_per_gate": 2.0,
+    "mode_profiles": {
+      "peak": {
+        "detection": {
+          "conf_threshold": 0.35,
+          "nms_iou": 0.6
+        },
+        "tracking": {
+          "track_buffer": 40,
+          "match_iou_min": 0.15
+        }
+      },
+      "normal": {},
+      "quiet": {
+        "detection": {
+          "conf_threshold": 0.45
+        }
+      }
+    },
+    "weather_profiles": {
+      "clear": {},
+      "cloudy": {},
+      "rain": {
+        "preprocess": {
+          "apply_wet_floor_masks": true
+        },
+        "counting": {
+          "min_track_len": 8
+        }
+      },
+      "snow": {
+        "preprocess": {
+          "apply_wet_floor_masks": true
+        },
+        "counting": {
+          "min_track_len": 8
+        }
+      }
+    },
+    "heavy_coat_profile": {
+      "detection": {
+        "max_area_ratio": 3.0
+      }
+    }
+  }
+}

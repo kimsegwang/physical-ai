@@ -1,0 +1,14 @@
+[project]
+name = "subway-edge"
+version = "0.1.0"
+description = "지하철 개찰구 엣지 전처리·카운팅 파이프라인"
+requires-python = ">=3.11"
+dependencies = ["numpy", "opencv-python"]
+
+[project.optional-dependencies]
+yolo = ["ultralytics"]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
