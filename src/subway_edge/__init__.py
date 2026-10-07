@@ -3,6 +3,7 @@
 from .config import PipelineConfig, load_config
 from .detection import Detection, Detector, YoloDetector
 from .pipeline import EdgePipeline, FrameResult
+from .publisher import Publisher, StdoutPublisher
 
 __all__ = [
     "Detection",
@@ -10,6 +11,8 @@ __all__ = [
     "EdgePipeline",
     "FrameResult",
     "PipelineConfig",
+    "Publisher",
+    "StdoutPublisher",
     "YoloDetector",
     "load_config",
 ]

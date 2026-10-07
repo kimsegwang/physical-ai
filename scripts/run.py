@@ -4,13 +4,12 @@
     python scripts/run.py --source 0            (웹캠)
     python scripts/run.py --source rtsp://...   (IP 카메라)
 
-1분 집계 레코드를 JSON 한 줄씩 표준 출력으로 낸다 (클라우드 전송 대상, 숫자만).
+1분 집계 레코드를 StdoutPublisher로 JSON 한 줄씩 출력한다 (클라우드 전송 대상, 숫자만).
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
 from pathlib import Path
@@ -22,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from subway_edge.config import WEATHER_CONDITIONS, load_config  # noqa: E402
 from subway_edge.detection import YoloDetector  # noqa: E402
 from subway_edge.pipeline import EdgePipeline  # noqa: E402
+from subway_edge.publisher import StdoutPublisher  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,16 +34,12 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def emit(records: list[dict]) -> None:
-    for record in records:
-        print(json.dumps(record, ensure_ascii=False), flush=True)
-
-
 def main() -> int:
     args = parse_args()
     cfg = load_config(args.config)
     detector = YoloDetector.from_config(cfg.detection, cfg.preprocess.input_size)
-    pipeline = EdgePipeline(cfg, detector)
+    publisher = StdoutPublisher()
+    pipeline = EdgePipeline(cfg, detector, publisher)
     pipeline.set_weather(args.weather, args.heavy_coat)
 
     source = int(args.source) if args.source.isdigit() else args.source
@@ -68,10 +64,7 @@ def main() -> int:
             ts = frame_idx / src_fps if is_file else time.time()
             frame_idx += 1
             result = pipeline.process(frame, ts)
-            if result is None:
-                continue
-            emit(result.records)
-            if show is not None and not show(result, pipeline.config):
+            if result is not None and show is not None and not show(result, pipeline.config):
                 break
     except KeyboardInterrupt:
         pass
@@ -79,7 +72,8 @@ def main() -> int:
         cap.release()
         if show is not None:
             cv2.destroyAllWindows()
-    emit(pipeline.flush())
+        pipeline.flush()
+        publisher.close()
     return 0
 
 

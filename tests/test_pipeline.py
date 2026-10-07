@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
 
@@ -27,6 +28,7 @@ from subway_edge.counting import CountEvent
 from subway_edge.detection import Detection, filter_detections
 from subway_edge.pipeline import EdgePipeline
 from subway_edge.preprocess import FrameSampler, Preprocessor, Stabilizer
+from subway_edge.publisher import StdoutPublisher
 
 ROOT = Path(__file__).resolve().parents[1]
 W, H = 640, 480
@@ -346,6 +348,46 @@ def test_invalid_profile_is_rejected_at_startup(profile, error):
     cfg = make_config({"adaptive": {"mode_profiles": {"peak": profile}}})
     with pytest.raises(error):
         AdaptiveController(cfg)
+
+
+class ListPublisher:
+    """받은 레코드를 모아두는 가짜 Publisher."""
+
+    def __init__(self) -> None:
+        self.records: list[dict] = []
+        self.closed = False
+
+    def publish(self, record: dict) -> None:
+        self.records.append(record)
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def test_pipeline_publishes_each_closed_minute():
+    publisher = ListPublisher()
+    pipe = EdgePipeline(make_config(), BlobDetector(), publisher)
+    frames = walk(0.5, (0.2, 0.8))
+    for i, boxes in enumerate(frames):
+        pipe.process(draw(boxes), i / FPS)
+    assert publisher.records == []  # 아직 1분이 지나지 않음
+    result = pipe.process(draw([]), 60.0)
+    assert publisher.records == result.records
+    assert publisher.records[0]["out"] == 1 and publisher.records[0]["camera_id"] == "cam0"
+    pipe.process(draw([]), 75.0)
+    flushed = pipe.flush()
+    assert publisher.records[1:] == flushed and flushed[0]["minute_start"] == 60
+
+
+def test_stdout_publisher_writes_json_lines():
+    stream = io.StringIO()
+    publisher = StdoutPublisher(stream)
+    publisher.publish({"camera_id": "역A", "in": 3, "out": 1, "flags": []})
+    publisher.publish({"camera_id": "역A", "in": 0, "out": 2, "flags": ["spike_out"]})
+    publisher.close()
+    lines = stream.getvalue().splitlines()
+    assert [json.loads(line)["out"] for line in lines] == [1, 2]
+    assert "역A" in lines[0]  # 한글이 이스케이프되지 않음
 
 
 def test_pipeline_switches_tracker_settings_after_busy_minute():
