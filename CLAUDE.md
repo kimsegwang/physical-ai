@@ -21,3 +21,13 @@
   필요한 값은 환경 변수로 읽고, 새 변수가 생기면 .env.example에 이름만 추가한다
 - 테스트 영상·이미지는 data/에, 모델 파일은 models/에만 저장한다
 - 커밋 전에 git status로 위 파일이 포함되지 않았는지 확인한다
+
+## 브랜치·병합 규칙
+- main 브랜치에는 직접 커밋하지 않는다
+- 작업을 시작할 때 main에서 새 브랜치를 만든다
+  이름 형식: feature/작업내용, fix/버그내용, docs/문서내용 (예: feature/mqtt-publisher)
+- 작업이 끝나면 그 브랜치만 push한다 (`git push -u origin 브랜치이름`)
+- main으로 merge, rebase, push는 하지 않는다. main 병합은 사용자가 직접 한다
+- Pull Request는 만들어도 되지만 병합(merge) 버튼은 누르지 않는다
+- `--force` 옵션은 어떤 브랜치에도 쓰지 않는다
+- push가 끝나면 브랜치 이름과 변경 요약을 알려준다
