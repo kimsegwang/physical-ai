@@ -377,6 +377,197 @@
 </div>
 </div>
 </section>
+<!-- SECTION 3-1: EDGE PIPELINE (전처리 → 검출 → 후처리) -->
+<section class="w-full bg-surface pb-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop break-keep" id="edge-pipeline">
+<div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
+<!-- Section Header -->
+<div class="flex flex-col gap-space-xs max-w-3xl">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Inside the Edge AI</span>
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">
+          카메라 영상이 숫자가 되기까지, 엣지 AI의 9단계
+        </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+          영상을 다듬는 <strong class="text-on-surface font-semibold">전처리</strong>, 사람을 찾는 <strong class="text-on-surface font-semibold">검출</strong>, 검출 결과를 정확한 입·퇴장 인원으로 바꾸는 <strong class="text-on-surface font-semibold">후처리</strong>까지 모두 역사 안 엣지 박스에서 끝납니다.
+        </p>
+</div>
+<!-- Pipeline: 전처리 / 검출 / 후처리 -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-stretch">
+<!-- 전처리 -->
+<div class="lg:col-span-5 bg-surface-container-low rounded-3xl p-space-xl flex flex-col gap-space-lg">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-tertiary-container uppercase font-bold">Pre-processing · 01–05</span>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">전처리</h3>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-right">YOLO에 넣기 전<br/>영상을 다듬습니다</span>
+</div>
+<ol class="flex flex-col gap-space-md">
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-on-tertiary-container flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">photo_size_select_large</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">01 리사이즈·샘플링</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">긴 변 640px, 카메라당 초당 10프레임으로 줄여 카메라 10대를 동시에 처리합니다.</span>
+</div>
+</li>
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-on-tertiary-container flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">vibration</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">02 흔들림 보정 <span class="ml-1 align-middle font-label-caps text-label-caps px-2 py-0.5 rounded-full bg-surface-container text-secondary">조건부</span></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">열차 진동으로 카메라가 자주 흔들리는 현장에서만 켭니다.</span>
+</div>
+</li>
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-on-tertiary-container flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">crop</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">03 관심 영역(ROI) + 마스크</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">개찰구 앞뒤만 남기고 광고판·유리·반사 바닥을 가려 오검출과 연산량을 함께 줄입니다.</span>
+</div>
+</li>
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-on-tertiary-container flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">flare</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">04 깜빡임 보정 <span class="ml-1 align-middle font-label-caps text-label-caps px-2 py-0.5 rounded-full bg-surface-container text-secondary">조건부</span></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">형광등 밝기 떨림을 직전 프레임들의 밝기에 맞춥니다.</span>
+</div>
+</li>
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-on-tertiary-container flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">contrast</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">05 명암 보정 (CLAHE) <span class="ml-1 align-middle font-label-caps text-label-caps px-2 py-0.5 rounded-full bg-surface-container text-secondary">자동</span></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">시계가 아니라 화면 밝기를 보고, 어둡거나 역광일 때만 켭니다.</span>
+</div>
+</li>
+</ol>
+</div>
+<!-- 검출 -->
+<div class="lg:col-span-2 flex flex-row lg:flex-col items-center justify-center gap-space-md">
+<span class="material-symbols-outlined text-[28px] text-outline rotate-90 lg:rotate-0">arrow_forward</span>
+<div class="bg-primary-container text-surface rounded-3xl p-space-lg flex flex-col items-center text-center gap-space-xs shadow-xl w-full max-w-[220px]">
+<span class="material-symbols-outlined text-[36px] text-surface-container-high">person_search</span>
+<span class="font-label-caps text-label-caps text-surface-container-high uppercase">Detection</span>
+<span class="font-headline-sm text-headline-sm font-bold">YOLO 사람 검출</span>
+<span class="font-body-sm text-body-sm text-surface-variant">경량 모델을 엣지 박스에서 바로 실행</span>
+</div>
+<span class="material-symbols-outlined text-[28px] text-outline rotate-90 lg:rotate-0">arrow_forward</span>
+</div>
+<!-- 후처리 -->
+<div class="lg:col-span-5 bg-surface-container-low rounded-3xl p-space-xl flex flex-col gap-space-lg">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-[#059669] uppercase font-bold">Post-processing · 06–09</span>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">후처리</h3>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-right">검출 결과를<br/>정확한 인원 수로</span>
+</div>
+<ol class="flex flex-col gap-space-md">
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-[#059669] flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">filter_alt</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">06 검출 결과 필터</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">신뢰도·겹침(NMS)·박스 크기·마스크 기준으로 그림자와 반사 같은 오검출을 걸러냅니다.</span>
+</div>
+</li>
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-[#059669] flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">conversion_path</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">07 추적 (ByteTrack 방식)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">같은 사람에게 같은 ID를 붙이고, 가려져 잠깐 흐려진 사람도 놓치지 않고 이어 붙입니다.</span>
+</div>
+</li>
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-[#059669] flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">swap_vert</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">08 이중 통과선 카운팅</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">두 선을 순서대로 지나야 1명으로 세고, 지나간 순서로 입장·퇴장을 구분합니다.</span>
+</div>
+</li>
+<li class="flex items-start gap-space-md">
+<span class="w-9 h-9 shrink-0 rounded-xl bg-surface-container-lowest text-[#059669] flex items-center justify-center shadow-sm"><span class="material-symbols-outlined text-[20px]">bar_chart</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-[16px] font-bold text-on-surface">09 1분 집계 + 이상치 처리</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">개찰구 물리 한계를 넘는 값만 잘라내고, 진짜일 수 있는 급증은 지우지 않고 표시만 합니다.</span>
+</div>
+</li>
+</ol>
+<div class="mt-auto bg-primary-container text-surface rounded-2xl px-space-md py-space-sm flex flex-wrap items-center gap-x-space-sm gap-y-1">
+<span class="material-symbols-outlined text-[18px] text-[#10B981]">cloud_upload</span>
+<span class="font-body-sm text-body-sm text-surface-variant">클라우드로 보내는 것은 숫자뿐</span>
+<code class="font-body-sm text-body-sm text-surface">{"in": 12, "out": 31}</code>
+</div>
+</div>
+</div>
+<!-- Edge cases verified by tests -->
+<div class="flex flex-col gap-space-md">
+<div class="flex flex-wrap items-end justify-between gap-space-sm">
+<div class="flex flex-col gap-space-xs">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">까다로운 상황도 정확하게</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">개찰구에서 실제로 자주 생기는 상황을 시나리오로 만들어 검증했습니다.</p>
+</div>
+<span class="inline-flex items-center gap-space-xs font-label-caps text-label-caps px-space-md py-space-xs rounded-full bg-[#10B981]/15 text-[#065F46] font-bold">
+<span class="material-symbols-outlined text-[16px]">task_alt</span>
+            시나리오 테스트 33개 통과
+          </span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<div class="bg-surface-container-low rounded-3xl p-space-lg flex flex-col gap-space-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant">두 명이 붙어서 통과 (꼬리물기)</span>
+<span class="font-metric-mono text-metric-mono text-on-surface">2명</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">개찰구 단위가 아니라 사람(ID)마다 세서 두 번째 사람을 놓치지 않습니다.</p>
+</div>
+<div class="bg-surface-container-low rounded-3xl p-space-lg flex flex-col gap-space-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant">선을 넘었다 되돌아감</span>
+<span class="font-metric-mono text-metric-mono text-on-surface">0명</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">두 번째 선까지 지나야 통과로 인정합니다.</p>
+</div>
+<div class="bg-surface-container-low rounded-3xl p-space-lg flex flex-col gap-space-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant">반사·광고판의 순간 오검출</span>
+<span class="font-metric-mono text-metric-mono text-on-surface">0명</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">궤적이 5프레임보다 짧으면 사람으로 세지 않습니다.</p>
+</div>
+<div class="bg-surface-container-low rounded-3xl p-space-lg flex flex-col gap-space-sm">
+<span class="font-body-sm text-body-sm text-on-surface-variant">경기 종료 후 인파 급증</span>
+<span class="font-metric-mono text-metric-mono text-on-surface">그대로 전송</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">진짜 급증을 지우지 않고 ‘급증’ 표시만 붙여 보냅니다.</p>
+</div>
+</div>
+</div>
+<!-- Adaptive settings strip -->
+<div class="bg-primary-container rounded-3xl p-space-xl text-surface flex flex-col gap-space-lg shadow-xl">
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-surface-container-high uppercase">Adaptive Settings</span>
+<h3 class="font-headline-md text-headline-md font-bold">상황에 맞춰 설정을 스스로 바꿉니다</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface/10 flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-surface-container-high">groups</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">혼잡도</span>
+<span class="font-body-sm text-body-sm text-surface-variant">직전 1분 동안 개찰구 하나에 10명 이상 지나가면 피크 모드로 바꿔 겹친 사람을 놓치지 않게 합니다.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface/10 flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-surface-container-high">rainy</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">날씨</span>
+<span class="font-body-sm text-body-sm text-surface-variant">비·눈 오는 날에는 젖은 바닥 반사 영역을 추가로 가리고, 외투 계절에는 박스 크기 기준을 넓힙니다.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface/10 flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-surface-container-high">wb_twilight</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">조명</span>
+<span class="font-body-sm text-body-sm text-surface-variant">계절마다 바뀌는 역광 시간대를 시계가 아닌 화면 밝기로 판단해 명암 보정을 켭니다.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Development status -->
+<p class="font-body-sm text-body-sm text-on-surface-variant flex flex-wrap items-center gap-x-space-sm gap-y-1">
+<span class="material-symbols-outlined text-[18px] text-secondary">info</span>
+<span><strong class="text-on-surface font-semibold">개발 현황</strong> · 전처리·후처리 파이프라인 구현 및 시나리오 테스트 완료 · 실제 역사 영상 기반 정확도 검증은 진행 예정입니다.</span>
+</p>
+</div>
+</section>
 <!-- SECTION 4: PRIVACY & SECURITY -->
 <section class="w-full bg-surface-container-lowest py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop">
 <div class="max-w-[1280px] mx-auto w-full">
