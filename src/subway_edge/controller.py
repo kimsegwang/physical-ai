@@ -3,12 +3,13 @@
 - 혼잡도: 직전 1분 집계의 게이트당 인원(입장+퇴장)으로 peak / normal / quiet 전환.
   전환 기준과 복귀 기준을 다르게 둬서(히스테리시스) 경계에서 설정이 왔다 갔다 하지 않게 한다
 - 날씨: 클라우드가 날씨 API를 보고 set_weather()로 알려준다
-- 최종 설정 = 기본 설정 ← 혼잡도 프로필 ← 날씨 프로필 ← 외투 프로필 순으로 덮어쓴다
+- 최종 설정 = 현장 설정 ← 혼잡도 프로필 ← 날씨 프로필 ← 외투 프로필 순으로 적용한다.
+  프로필은 조정 방향(at_least/at_most)만 정하므로 현장 설정보다 약해지지 않는다
 """
 
 from __future__ import annotations
 
-from .config import WEATHER_CONDITIONS, PipelineConfig, apply_overrides
+from .config import WEATHER_CONDITIONS, PipelineConfig, apply_profile
 
 MODES = ("peak", "normal", "quiet")
 
@@ -19,7 +20,15 @@ class AdaptiveController:
         self.mode = "normal"
         self.weather = "clear"
         self.heavy_coat = False
+        self._validate_profiles()
         self._config = self._build()
+
+    def _validate_profiles(self) -> None:
+        """프로필 오타를 전환 시점이 아니라 시작할 때 잡는다."""
+        a = self.base.adaptive
+        profiles = [*a.mode_profiles.values(), *a.weather_profiles.values(), a.heavy_coat_profile]
+        for profile in profiles:
+            apply_profile(self.base, profile)
 
     @property
     def config(self) -> PipelineConfig:
@@ -64,8 +73,8 @@ class AdaptiveController:
         cfg = self.base
         if not a.enabled:
             return cfg
-        cfg = apply_overrides(cfg, a.mode_profiles.get(self.mode, {}))
-        cfg = apply_overrides(cfg, a.weather_profiles.get(self.weather, {}))
+        cfg = apply_profile(cfg, a.mode_profiles.get(self.mode, {}))
+        cfg = apply_profile(cfg, a.weather_profiles.get(self.weather, {}))
         if self.heavy_coat:
-            cfg = apply_overrides(cfg, a.heavy_coat_profile)
+            cfg = apply_profile(cfg, a.heavy_coat_profile)
         return cfg

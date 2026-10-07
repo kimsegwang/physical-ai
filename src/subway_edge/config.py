@@ -149,19 +149,22 @@ class AggregationConfig:
     spike_min_history: int = 5  # 이력이 이보다 적으면 급증 판단을 하지 않음
 
 
+# 프로필 값은 조정 방향만 정한다 (apply_profile 참고).
+# {"at_least": v} → max(현장값, v), {"at_most": v} → min(현장값, v)
+# 현장에서 이미 더 강하게 맞춰둔 값은 프로필이 약하게 되돌리지 않는다.
 def _default_mode_profiles() -> dict[str, dict]:
     return {
         "peak": {
-            "detection": {"conf_threshold": 0.35, "nms_iou": 0.6},
-            "tracking": {"track_buffer": 40, "match_iou_min": 0.15},
+            "detection": {"conf_threshold": {"at_most": 0.35}, "nms_iou": {"at_least": 0.6}},
+            "tracking": {"track_buffer": {"at_least": 40}, "match_iou_min": {"at_most": 0.15}},
         },
         "normal": {},
-        "quiet": {"detection": {"conf_threshold": 0.45}},
+        "quiet": {"detection": {"conf_threshold": {"at_least": 0.45}}},
     }
 
 
 def _default_weather_profiles() -> dict[str, dict]:
-    wet = {"preprocess": {"apply_wet_floor_masks": True}, "counting": {"min_track_len": 8}}
+    wet = {"preprocess": {"apply_wet_floor_masks": True}, "counting": {"min_track_len": {"at_least": 8}}}
     return {"clear": {}, "cloudy": {}, "rain": copy.deepcopy(wet), "snow": copy.deepcopy(wet)}
 
 
@@ -179,7 +182,7 @@ class AdaptiveConfig:
     quiet_exit_per_gate: float = 2.0  # quiet 상태에서 이 값 이상이면 해제
     mode_profiles: dict[str, dict] = field(default_factory=_default_mode_profiles)
     weather_profiles: dict[str, dict] = field(default_factory=_default_weather_profiles)
-    heavy_coat_profile: dict = field(default_factory=lambda: {"detection": {"max_area_ratio": 3.0}})
+    heavy_coat_profile: dict = field(default_factory=lambda: {"detection": {"max_area_ratio": {"at_least": 3.0}}})
 
 
 @dataclass(frozen=True)
@@ -193,10 +196,15 @@ class PipelineConfig:
     adaptive: AdaptiveConfig = field(default_factory=AdaptiveConfig)
 
 
+def _is_bound(value: Any) -> bool:
+    """프로필의 방향 지정 값({"at_least": v} 등)인지. 이런 값은 병합하지 않고 통째로 교체한다."""
+    return isinstance(value, dict) and bool(value) and set(value) <= {"at_least", "at_most"}
+
+
 def _merge_dict(base: dict, overrides: dict) -> dict:
     out = copy.deepcopy(base)
     for key, value in overrides.items():
-        if isinstance(out.get(key), dict) and isinstance(value, dict):
+        if isinstance(out.get(key), dict) and isinstance(value, dict) and not _is_bound(value):
             out[key] = _merge_dict(out[key], value)
         else:
             out[key] = copy.deepcopy(value)
@@ -220,6 +228,44 @@ def apply_overrides(obj: Any, overrides: dict, _path: str = "") -> Any:
         else:
             changes[key] = copy.deepcopy(value)
     return dataclasses.replace(obj, **changes)
+
+
+_BOUNDS = {"at_least": max, "at_most": min}
+
+
+def _resolve_profile(obj: Any, profile: dict, path: str) -> dict:
+    """프로필의 방향 지정 값을 현재 설정값 기준의 실제 값으로 바꾼다."""
+    if not isinstance(profile, dict):
+        raise TypeError(f"{path or '프로필'}에는 객체(dict)가 와야 합니다")
+    names = {f.name for f in dataclasses.fields(obj)}
+    resolved: dict[str, Any] = {}
+    for key, value in profile.items():
+        if key not in names:
+            raise KeyError(f"알 수 없는 프로필 키: {path}{key}")
+        current = getattr(obj, key)
+        if dataclasses.is_dataclass(current):
+            resolved[key] = _resolve_profile(current, value, f"{path}{key}.")
+        elif isinstance(value, dict) and not isinstance(current, dict):
+            if len(value) != 1 or next(iter(value)) not in _BOUNDS:
+                raise ValueError(f"{path}{key}: 프로필 값은 {{'at_least': v}} 또는 {{'at_most': v}} 형식이어야 합니다")
+            if isinstance(current, bool) or not isinstance(current, (int, float)):
+                raise TypeError(f"{path}{key}: at_least/at_most는 숫자 설정에만 쓸 수 있습니다")
+            (op, bound), = value.items()
+            resolved[key] = type(current)(_BOUNDS[op](current, bound))
+        else:
+            resolved[key] = value
+    return resolved
+
+
+def apply_profile(cfg: Any, profile: dict) -> Any:
+    """시간대·날씨 프로필 적용.
+
+    - {"at_least": v}: max(현재값, v)   예) peak의 track_buffer, nms_iou
+    - {"at_most": v}:  min(현재값, v)   예) peak의 conf_threshold, match_iou_min
+    - 그 밖의 값(bool 등)은 그대로 설정
+    프로필은 조정 방향만 정하므로 현장 설정보다 약해지지 않는다.
+    """
+    return apply_overrides(cfg, _resolve_profile(cfg, profile, ""))
 
 
 def config_to_dict(cfg: PipelineConfig) -> dict:

@@ -96,18 +96,28 @@
     "mode_profiles": {
       "peak": {
         "detection": {
-          "conf_threshold": 0.35,
-          "nms_iou": 0.6
+          "conf_threshold": {
+            "at_most": 0.35
+          },
+          "nms_iou": {
+            "at_least": 0.6
+          }
         },
         "tracking": {
-          "track_buffer": 40,
-          "match_iou_min": 0.15
+          "track_buffer": {
+            "at_least": 40
+          },
+          "match_iou_min": {
+            "at_most": 0.15
+          }
         }
       },
       "normal": {},
       "quiet": {
         "detection": {
-          "conf_threshold": 0.45
+          "conf_threshold": {
+            "at_least": 0.45
+          }
         }
       }
     },
@@ -119,7 +129,9 @@
           "apply_wet_floor_masks": true
         },
         "counting": {
-          "min_track_len": 8
+          "min_track_len": {
+            "at_least": 8
+          }
         }
       },
       "snow": {
@@ -127,13 +139,17 @@
           "apply_wet_floor_masks": true
         },
         "counting": {
-          "min_track_len": 8
+          "min_track_len": {
+            "at_least": 8
+          }
         }
       }
     },
     "heavy_coat_profile": {
       "detection": {
-        "max_area_ratio": 3.0
+        "max_area_ratio": {
+          "at_least": 3.0
+        }
       }
     }
   }

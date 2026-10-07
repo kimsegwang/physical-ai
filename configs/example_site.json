@@ -22,10 +22,5 @@
       {"name": "gate1", "line_a": [[0.2, 0.5], [0.5, 0.5]], "line_b": [[0.2, 0.6], [0.5, 0.6]]},
       {"name": "gate2", "line_a": [[0.5, 0.5], [0.8, 0.5]], "line_b": [[0.5, 0.6], [0.8, 0.6]]}
     ]
-  },
-  "adaptive": {
-    "mode_profiles": {
-      "peak": {"tracking": {"track_buffer": 50}}
-    }
   }
 }

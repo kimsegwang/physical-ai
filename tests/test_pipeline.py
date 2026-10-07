@@ -292,6 +292,62 @@ def test_controller_weather_and_heavy_coat():
         ctrl.set_weather("hail")
 
 
+def test_profiles_never_weaken_site_settings():
+    """프로필은 조정 방향만 정한다: 현장에서 더 강하게 맞춘 값은 그대로 둔다."""
+    strong = make_config(
+        {
+            "detection": {"conf_threshold": 0.3, "nms_iou": 0.65, "max_area_ratio": 3.5},
+            "tracking": {"track_buffer": 50, "match_iou_min": 0.1},
+            "counting": {"min_track_len": 10},
+        }
+    )
+    ctrl = AdaptiveController(strong)
+    ctrl.on_minute(minute(10), num_gates=1)  # peak
+    ctrl.set_weather("rain", heavy_coat=True)
+    cfg = ctrl.config
+    assert ctrl.mode == "peak"
+    assert cfg.tracking.track_buffer == 50  # max(50, 40)
+    assert cfg.detection.nms_iou == 0.65  # max(0.65, 0.6)
+    assert cfg.tracking.match_iou_min == 0.1  # min(0.1, 0.15)
+    assert cfg.detection.conf_threshold == 0.3  # min(0.3, 0.35)
+    assert cfg.counting.min_track_len == 10  # max(10, 8)
+    assert cfg.detection.max_area_ratio == 3.5  # max(3.5, 3.0)
+    assert isinstance(cfg.tracking.track_buffer, int)
+
+    # quiet: conf = max(현장값, 0.45)
+    shadowy = AdaptiveController(make_config({"detection": {"conf_threshold": 0.5}}))
+    shadowy.on_minute(minute(0), num_gates=1)
+    assert shadowy.mode == "quiet" and shadowy.config.detection.conf_threshold == 0.5
+
+    # 기본 현장값이면 프로필 값이 그대로 적용된다
+    default = AdaptiveController(make_config())
+    default.on_minute(minute(10), num_gates=1)
+    cfg = default.config
+    assert (cfg.tracking.track_buffer, cfg.detection.nms_iou) == (40, 0.6)
+    assert (cfg.tracking.match_iou_min, cfg.detection.conf_threshold) == (0.15, 0.35)
+
+
+def test_site_can_replace_profile_bound():
+    cfg = make_config({"adaptive": {"mode_profiles": {"peak": {"detection": {"conf_threshold": {"at_least": 0.3}}}}}})
+    peak = cfg.adaptive.mode_profiles["peak"]
+    assert peak["detection"]["conf_threshold"] == {"at_least": 0.3}  # 기존 at_most와 섞이지 않음
+    assert peak["detection"]["nms_iou"] == {"at_least": 0.6}  # 나머지 항목은 유지
+
+
+@pytest.mark.parametrize(
+    "profile, error",
+    [
+        ({"detection": {"conf_threshold": {"lower": 0.3}}}, ValueError),
+        ({"preprocess": {"apply_wet_floor_masks": {"at_least": 1}}}, TypeError),
+        ({"tracking": {"track_bufer": {"at_least": 40}}}, KeyError),
+    ],
+)
+def test_invalid_profile_is_rejected_at_startup(profile, error):
+    cfg = make_config({"adaptive": {"mode_profiles": {"peak": profile}}})
+    with pytest.raises(error):
+        AdaptiveController(cfg)
+
+
 def test_pipeline_switches_tracker_settings_after_busy_minute():
     pipe = EdgePipeline(make_config(), BlobDetector())
     blank = draw([])
@@ -378,9 +434,8 @@ def test_example_site_config_overrides_partially():
     assert [g.name for g in cfg.counting.gates] == ["gate1", "gate2"]
     assert cfg.counting.anchor == "bottom"
     assert cfg.detection.conf_threshold == 0.4  # 적지 않은 값은 기본값 유지
-    peak = cfg.adaptive.mode_profiles["peak"]
-    assert peak["tracking"] == {"track_buffer": 50, "match_iou_min": 0.15}
-    assert peak["detection"]["conf_threshold"] == 0.35
+    assert cfg.adaptive.mode_profiles == PipelineConfig().adaptive.mode_profiles
+    AdaptiveController(cfg)  # 프로필이 이 현장 설정에 문제없이 적용되는지
 
 
 def test_unknown_config_key_is_rejected():
