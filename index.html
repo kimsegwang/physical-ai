@@ -568,6 +568,134 @@
 </p>
 </div>
 </section>
+<!-- SECTION 3-2: MODEL & VALIDATION ROADMAP -->
+<section class="w-full bg-surface-container-low py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop break-keep" id="model-plan">
+<div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
+<!-- Section Header -->
+<div class="flex flex-col gap-space-xs max-w-3xl">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Model &amp; Validation</span>
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">
+          어떤 모델을 왜 골랐고, 어디까지 검증했는지
+        </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+          FlowSight는 두 가지 모델로 움직입니다. 역 안에서 사람을 세는 비전 모델과, 클라우드에서 10분 뒤 혼잡도를 내다보는 예측 모델입니다. 지금 어디까지 검증했는지도 그대로 공개합니다.
+        </p>
+</div>
+<!-- Two Model Cards -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<!-- Vision model -->
+<div class="bg-surface-container-lowest rounded-3xl p-space-xl flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="px-space-md py-1 rounded-full bg-primary-container text-surface font-label-caps text-label-caps font-bold">EDGE · 역사 안</span>
+<span class="material-symbols-outlined text-[32px] text-on-tertiary-container">visibility</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">비전 모델: 경량 YOLO + 추적 + 이중 통과선</h3>
+<span class="font-body-md text-body-md text-on-surface-variant">개찰구를 지나간 사람을 입장·퇴장별로 셉니다.</span>
+</div>
+<ul class="flex flex-col gap-space-sm">
+<li class="flex items-start gap-space-sm"><span class="material-symbols-outlined text-[20px] text-[#10B981] mt-0.5">check_circle</span><span class="font-body-md text-body-md text-on-surface"><strong class="font-semibold">밀도 추정이 아니라 한 명씩 검출·추적</strong> — 들어오는지 나가는지 방향을 구분하려면 사람을 따라가야 합니다.</span></li>
+<li class="flex items-start gap-space-sm"><span class="material-symbols-outlined text-[20px] text-[#10B981] mt-0.5">check_circle</span><span class="font-body-md text-body-md text-on-surface"><strong class="font-semibold">nano급 경량 모델</strong> — 장비 한 대가 카메라 10대, 초당 100프레임을 처리해야 합니다.</span></li>
+<li class="flex items-start gap-space-sm"><span class="material-symbols-outlined text-[20px] text-[#10B981] mt-0.5">check_circle</span><span class="font-body-md text-body-md text-on-surface"><strong class="font-semibold">후보 3종을 현장 영상으로 비교</strong> — YOLOv8n · YOLO11n · YOLO26n 중 카운팅 정확도와 처리 속도로 고릅니다.</span></li>
+</ul>
+<div class="mt-auto bg-surface-container-low rounded-2xl p-space-md flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-[20px] text-secondary mt-0.5">help</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant"><strong class="text-on-surface font-semibold">사람 전체를 볼까, 머리만 볼까?</strong> 천장에서 내려다보는 카메라라면 머리 검출이 유리할 수 있지만, 박스가 작아 추적이 끊기고 우산·모자에 가려지는 단점도 있습니다. 현장 조사와 실측 후에 정합니다.</p>
+</div>
+</div>
+<!-- Forecast model -->
+<div class="bg-surface-container-lowest rounded-3xl p-space-xl flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="px-space-md py-1 rounded-full bg-primary text-on-primary font-label-caps text-label-caps font-bold">CLOUD · 중앙 서버</span>
+<span class="material-symbols-outlined text-[32px] text-[#10B981]">insights</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">예측 모델: LightGBM</h3>
+<span class="font-body-md text-body-md text-on-surface-variant">1분 단위 인원 기록으로 10분·30분 뒤 혼잡도를 예측합니다.</span>
+</div>
+<ul class="flex flex-col gap-space-sm">
+<li class="flex items-start gap-space-sm"><span class="material-symbols-outlined text-[20px] text-[#10B981] mt-0.5">check_circle</span><span class="font-body-md text-body-md text-on-surface"><strong class="font-semibold">표 형태 데이터에 강한 모델</strong> — 시간대·요일·공휴일·날씨·행사 정보를 적은 데이터로도 빠르게 학습합니다.</span></li>
+<li class="flex items-start gap-space-sm"><span class="material-symbols-outlined text-[20px] text-[#10B981] mt-0.5">check_circle</span><span class="font-body-md text-body-md text-on-surface"><strong class="font-semibold">단순 예측을 이겨야 채택</strong> — "지금 인원이 그대로 간다", "지난주 같은 시간과 같다"보다 정확할 때만 씁니다.</span></li>
+<li class="flex items-start gap-space-sm"><span class="material-symbols-outlined text-[20px] text-[#10B981] mt-0.5">check_circle</span><span class="font-body-md text-body-md text-on-surface"><strong class="font-semibold">WAPE로 평가</strong> — 승객이 0명인 새벽에도 계산되고, 붐비는 시간대의 오차를 더 무겁게 봅니다.</span></li>
+</ul>
+<div class="mt-auto bg-surface-container-low rounded-2xl p-space-md flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-[20px] text-secondary mt-0.5">functions</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant"><strong class="text-on-surface font-semibold">WAPE</strong> = 전체 오차의 합 ÷ 전체 실제 인원의 합. 목표는 10분 뒤 예측 15% 이하입니다(데이터가 쌓이면 다시 정하는 잠정값).</p>
+</div>
+</div>
+</div>
+<!-- Validation Roadmap -->
+<div class="bg-surface-container-lowest rounded-3xl p-space-xl flex flex-col gap-space-lg shadow-sm">
+<div class="flex flex-wrap items-end justify-between gap-space-sm">
+<div class="flex flex-col gap-space-xs">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">검증 로드맵</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">높은 점수 하나보다 “실제로 지나간 사람 수와 맞는가”를 최종 기준으로 삼습니다.</p>
+</div>
+<div class="flex items-center gap-space-md font-body-sm text-body-sm text-on-surface-variant">
+<span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#10B981]"></span>완료</span>
+<span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-outline-variant"></span>예정</span>
+</div>
+</div>
+<ol class="grid grid-cols-1 md:grid-cols-5 gap-gutter">
+<li class="flex flex-col gap-space-xs p-space-md rounded-2xl bg-[#ECFDF5]">
+<span class="inline-flex items-center gap-1 font-label-caps text-label-caps text-[#065F46] font-bold"><span class="material-symbols-outlined text-[16px]">task_alt</span>1 · 완료</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">로직 검증</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">세기·추적·집계·설정 전환을 시나리오 테스트 33개로 확인</span>
+</li>
+<li class="flex flex-col gap-space-xs p-space-md rounded-2xl bg-surface-container-low">
+<span class="inline-flex items-center gap-1 font-label-caps text-label-caps text-secondary font-bold"><span class="material-symbols-outlined text-[16px]">schedule</span>2 · 예정</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">검출 성능</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">현장 시점 영상으로 사람을 얼마나 잘 찾는지 측정 (mAP50)</span>
+</li>
+<li class="flex flex-col gap-space-xs p-space-md rounded-2xl bg-surface-container-low">
+<span class="inline-flex items-center gap-1 font-label-caps text-label-caps text-secondary font-bold"><span class="material-symbols-outlined text-[16px]">schedule</span>3 · 예정</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">카운팅 정확도 95%</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">사람이 직접 센 인원과 시간대·입퇴장별로 비교</span>
+</li>
+<li class="flex flex-col gap-space-xs p-space-md rounded-2xl bg-surface-container-low">
+<span class="inline-flex items-center gap-1 font-label-caps text-label-caps text-secondary font-bold"><span class="material-symbols-outlined text-[16px]">schedule</span>4 · 예정</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">엣지 실시간 처리</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Jetson 한 대에서 초당 100프레임, 24시간 안정 동작</span>
+</li>
+<li class="flex flex-col gap-space-xs p-space-md rounded-2xl bg-surface-container-low">
+<span class="inline-flex items-center gap-1 font-label-caps text-label-caps text-secondary font-bold"><span class="material-symbols-outlined text-[16px]">schedule</span>5 · 예정</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">예측 WAPE 15%</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">인원 기록이 쌓인 뒤 단순 예측과 비교</span>
+</li>
+</ol>
+</div>
+<!-- Responsible Training Principles -->
+<div class="bg-primary-container rounded-3xl p-space-xl text-surface flex flex-col gap-space-lg shadow-xl">
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-surface-container-high uppercase">Responsible Training</span>
+<h3 class="font-headline-md text-headline-md font-bold">학습도 개인정보 원칙 안에서</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface/10 flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-surface-container-high">how_to_reg</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">동의받은 영상만</span>
+<span class="font-body-sm text-body-sm text-surface-variant">촬영 동의를 받은 영상만 학습에 쓰고, 클라우드 학습 업로드·보관·삭제 시점까지 동의서에 적습니다.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface/10 flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-surface-container-high">gavel</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">공개 데이터는 조건대로</span>
+<span class="font-body-sm text-body-sm text-surface-variant">비상업 연구·교육용 공개 데이터셋은 그 용도로만 쓰고, 이미지를 재배포하지 않습니다.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface/10 flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-surface-container-high">tune</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">현장과 같은 조건으로</span>
+<span class="font-body-sm text-body-sm text-surface-variant">학습 이미지도 실제 운영과 같은 전처리를 거치고, 장비 변환 후에도 정확도를 다시 검증합니다.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
 <!-- SECTION 4: PRIVACY & SECURITY -->
 <section class="w-full bg-surface-container-lowest py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop">
 <div class="max-w-[1280px] mx-auto w-full">
