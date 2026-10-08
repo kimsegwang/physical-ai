@@ -12,6 +12,9 @@ data/*
 models/*
 !models/.gitkeep
 
+# YOLO 학습 결과물: 가중치와 학습 이미지 샘플(train_batch*.jpg 등)에 사람이 찍힘
+runs/
+
 __pycache__/
 *.pyc
 .vscode/
