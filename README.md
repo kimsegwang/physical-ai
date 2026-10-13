@@ -30,8 +30,12 @@
 │   ├── controller.py      혼잡도·날씨별 설정 자동 전환
 │   ├── pipeline.py        1~9단계 연결
 │   ├── publisher.py       결과 전송 인터페이스 (지금은 표준 출력)
-│   └── debug.py           --show 디버그 화면 (저장 안 함)
+│   ├── debug.py           --show 디버그 화면 (저장 안 함)
+│   └── docs_chunker.py    챗봇용 문서 청킹
 ├── scripts/run.py         실행 진입점
+├── scripts/ingest_docs.py 챗봇 문서 임베딩·적재
+├── chatbot/               홈페이지 챗봇 위젯
+├── supabase/              챗봇 DB 마이그레이션, Edge Function
 ├── configs/
 │   ├── default.json       전체 기본값 (코드 기본값과 같은지 테스트로 확인)
 │   └── example_site.json  현장 설정 예시 (바꿀 값만 적음)
@@ -109,6 +113,34 @@ python scripts/run.py --source rtsp://<카메라 주소>
 - 현장 설정 JSON에는 **바꿀 값만** 적습니다. 적지 않은 값은 [configs/default.json](configs/default.json)의 기본값을 씁니다. 모르는 키는 오타로 보고 오류를 냅니다.
 - ROI·마스크·통과선 좌표는 모두 **0~1 정규화 좌표**입니다.
 - 혼잡도(peak/quiet)·날씨 프로필은 `at_least` / `at_most`로 조정 방향만 정하므로, 현장에서 더 강하게 맞춘 값을 약하게 되돌리지 않습니다.
+
+## 문서 검색 챗봇 (RAG)
+
+홈페이지 오른쪽 아래 챗봇 버튼은 프로젝트 문서를 검색해서 답합니다.
+
+```
+질문 → Edge Function(chat) → Gemini 임베딩 → Supabase pgvector 유사도 검색 → 검색된 문서로 Gemini 답변
+```
+
+| 위치 | 내용 |
+|---|---|
+| `chatbot/chatbot.js` | 홈페이지 위젯 (`index.html`, `docs.html`에서 불러옴). 대화는 탭 메모리에만 있음 |
+| `supabase/functions/chat/` | 검색·답변 Edge Function |
+| `supabase/migrations/` | `documents`, `document_chunks`(vector 768) 테이블, `match_document_chunks` 검색 함수 |
+| `src/subway_edge/docs_chunker.py` | 문서 청킹 (소제목 단위, 조각당 최대 900자, 긴 표는 머리행을 반복해서 분할) |
+| `scripts/ingest_docs.py` | 문서 → 청크 → 임베딩 → DB 적재 |
+
+문서를 고친 뒤에는 다시 적재합니다. 바뀐 문서만 다시 임베딩합니다.
+
+```powershell
+python scripts/ingest_docs.py --dry-run   # API 호출 없이 청크 수·길이 확인
+python scripts/ingest_docs.py             # 적재 (.env의 GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SECRET_KEY 사용)
+```
+
+- 검색 대상 문서 목록은 `scripts/ingest_docs.py`의 `SOURCES`에서 바꿉니다.
+- Edge Function에는 Supabase 대시보드 → Edge Functions → Secrets에서 `GEMINI_API_KEY`를 등록해야 합니다. 답변 모델은 `GEMINI_CHAT_MODEL`로 바꿀 수 있습니다 (기본 `gemini-3.5-flash-lite`).
+- 주제 밖 질문은 답하지 않습니다. ① 프롬프트 탈취 문구 차단 ② 가장 가까운 문서 유사도가 0.68 미만이면 답변 생성 없이 차단 ③ 그 외 애매한 질문은 Gemini가 주제 밖으로 판단하면 차단. 기준값은 `supabase/functions/chat/index.ts`의 `ON_TOPIC_SIMILARITY`.
+- 문서 테이블은 RLS로 막혀 있어 브라우저(publishable 키)에서는 직접 읽을 수 없고, Edge Function만 secret 키로 검색합니다.
 
 ## 개인정보 원칙
 
