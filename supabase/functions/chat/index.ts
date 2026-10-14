@@ -15,8 +15,11 @@ const MAX_HISTORY_TURNS = 6;
 const MATCH_COUNT = 6;
 const MIN_SIMILARITY = 0.35;
 // 가장 가까운 문서의 유사도가 이보다 낮으면 주제 밖 질문으로 보고 답변 생성 없이 차단한다.
-// 실측(2026-10-13): 주제 밖 질문(날씨·코딩·점심 메뉴 등) 0.58~0.64, 프로젝트 질문 0.72~0.79
-const ON_TOPIC_SIMILARITY = 0.68;
+// 이 값 이상이면 답변을 만들고, 애매한 주제 밖 질문은 Gemini가 [OFF_TOPIC]으로 걸러낸다.
+// 실측(2026-10-14, 27문항): 프로젝트 질문 0.653~0.768, 주제 밖 질문 0.565~0.650.
+// 두 범위가 0.65 근처에서 겹치므로 여기서는 확실한 주제 밖(0.60 미만)만 막는다.
+// (이전 0.68은 "카메라 10대를 어떻게 동시에 처리하나요?"(0.672) 같은 프로젝트 질문까지 막았다)
+const ON_TOPIC_SIMILARITY = 0.60;
 const OFF_TOPIC_MARK = "[OFF_TOPIC]";
 
 const OFF_TOPIC_REPLY =
