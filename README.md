@@ -142,7 +142,7 @@ python scripts/ingest_docs.py             # 적재 (.env의 GEMINI_API_KEY, SUPA
 
 - 검색 대상 문서 목록은 `scripts/ingest_docs.py`의 `SOURCES`에서 바꿉니다.
 - Edge Function에는 Supabase 대시보드 → Edge Functions → Secrets에서 `GEMINI_API_KEY`를 등록해야 합니다. 답변 모델은 `GEMINI_CHAT_MODEL`로 바꿀 수 있습니다 (기본 `gemini-3.5-flash-lite`).
-- 주제 밖 질문은 답하지 않습니다. ① 프롬프트 탈취 문구 차단 ② 가장 가까운 문서 유사도가 0.68 미만이면 답변 생성 없이 차단 ③ 그 외 애매한 질문은 Gemini가 주제 밖으로 판단하면 차단. 기준값은 `supabase/functions/chat/index.ts`의 `ON_TOPIC_SIMILARITY`.
+- 주제 밖 질문은 답하지 않습니다. ① 프롬프트 탈취 문구 차단 ② 가장 가까운 문서 유사도가 0.60 미만이면 답변 생성 없이 차단 ③ 그 외 애매한 질문은 Gemini가 주제 밖으로 판단하면 차단. 기준값은 `supabase/functions/chat/index.ts`의 `ON_TOPIC_SIMILARITY`.
 - 문서 테이블은 RLS로 막혀 있어 브라우저(publishable 키)에서는 직접 읽을 수 없고, Edge Function만 secret 키로 검색합니다.
 
 ## 개인정보 원칙
