@@ -139,7 +139,7 @@ python scripts/run.py --source rtsp://<카메라 주소>
 |---|---|
 | `chatbot/chatbot.js` | 홈페이지 위젯 (`index.html`, `docs.html`에서 불러옴). 대화는 탭 메모리에만 있음 |
 | `supabase/functions/chat/` | 검색·답변 Edge Function |
-| `supabase/migrations/` | `documents`, `document_chunks`(vector 768) 테이블, `match_document_chunks` 검색 함수 |
+| `supabase/migrations/` | `document_categories`(섹터), `documents`, `document_chunks`(vector 768) 테이블, 섹터별 보기 뷰, `match_document_chunks` 검색 함수 |
 | `src/subway_rag/docs_chunker.py` | 문서 청킹 (소제목 단위, 조각당 최대 900자, 긴 표는 머리행을 반복해서 분할) |
 | `scripts/ingest_docs.py` | 문서 → 청크 → 임베딩 → DB 적재 |
 
@@ -150,7 +150,8 @@ python scripts/ingest_docs.py --dry-run   # API 호출 없이 청크 수·길이
 python scripts/ingest_docs.py             # 적재 (.env의 GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SECRET_KEY 사용)
 ```
 
-- 검색 대상 문서 목록은 `scripts/ingest_docs.py`의 `SOURCES`에서 바꿉니다.
+- 검색 대상 문서 목록은 `scripts/ingest_docs.py`의 `SOURCES`에서 바꿉니다. 새 문서는 `CATEGORIES`에 섹터도 적어야 합니다 (빠지면 적재를 멈춥니다).
+- 문서는 섹터(기획·엣지 파이프라인·모델·하드웨어·현장 조사·홈페이지)로 나눠 관리합니다. 섹터마다 테이블을 나누지 않고 `documents.category` 열로 구분해서, 질문 하나를 모든 섹터에서 한 번에 가까운 순으로 찾습니다. 대시보드에서는 `v_category_summary`(섹터별 문서·청크 수), `v_document_chunks`(섹터·문서 순 청크 목록) 뷰로 봅니다. 특정 섹터만 찾으려면 `match_document_chunks`에 `filter_category`를 넘깁니다.
 - Edge Function에는 Supabase 대시보드 → Edge Functions → Secrets에서 `GEMINI_API_KEY`를 등록해야 합니다. 답변 모델은 `GEMINI_CHAT_MODEL`로 바꿀 수 있습니다 (기본 `gemini-3.5-flash-lite`).
 - 주제 밖 질문은 답하지 않습니다. ① 프롬프트 탈취 문구 차단 ② 가장 가까운 문서 유사도가 0.60 미만이면 답변 생성 없이 차단 ③ 그 외 애매한 질문은 Gemini가 주제 밖으로 판단하면 차단. 기준값은 `supabase/functions/chat/index.ts`의 `ON_TOPIC_SIMILARITY`.
 - 문서 테이블은 RLS로 막혀 있어 브라우저(publishable 키)에서는 직접 읽을 수 없고, Edge Function만 secret 키로 검색합니다.
