@@ -6,7 +6,7 @@
 
 ## 규칙
 - Python 3.11, OpenCV, numpy, ultralytics(YOLO)
-- 코드는 src/subway_edge/ 패키지, 실행은 scripts/, 테스트는 tests/
+- 코드는 src/subway_edge/ 패키지(엣지), 챗봇용 코드는 src/subway_rag/, 실행은 scripts/, 테스트는 tests/
 - 주석과 docstring은 한국어로 작성
 - ROI·마스크·통과선 좌표는 모두 0~1 정규화 좌표로 받는다
 - 개인정보: 영상·프레임을 파일로 저장하거나 외부로 전송하는 코드를 만들지 않는다

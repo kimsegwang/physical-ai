@@ -27,15 +27,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from subway_edge.docs_chunker import (  # noqa: E402
+from subway_rag.docs_chunker import (  # noqa: E402
     Chunk,
     chunk_markdown,
     document_title,
     html_to_markdown,
 )
 
-# 검색 대상 문서 (저장소 기준 경로). stitch/ 시안, CLAUDE.md(개발 규칙),
-# report/report1(편의점 무인계산대 과제, 이 프로젝트와 무관)은 제외한다.
+# 검색 대상 문서 (저장소 기준 경로). design/ 시안, CLAUDE.md(개발 규칙),
+# report/reference/(편의점 무인계산대 과제 등 이 프로젝트와 무관한 참고 자료)는 제외한다.
 SOURCES = [
     "README.md",
     "PRD/PRD.md",
