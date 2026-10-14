@@ -14,12 +14,19 @@
   var PUBLISHABLE_KEY = "sb_publishable_N0HZi8381E1VBgnuTpmvOw_IEX08Ixe";
 
   var MAX_QUESTION = 500;
+  // 추천 질문. 앞에서부터 아직 묻지 않은 것을 SUGGEST_COUNT개씩 보여준다 (처음 화면에는 앞의 3개)
   var SUGGESTIONS = [
     "FlowSight는 어떻게 인원을 세나요?",
+    "왜 클라우드가 아니라 엣지에서 처리하나요?",
     "영상은 어디에 저장되나요?",
     "어떤 비전 모델을 쓰나요?",
+    "꼬리물기나 되돌아가는 사람은 어떻게 세나요?",
+    "혼잡도 예측은 어떻게 하나요?",
     "전처리 단계를 알려주세요",
+    "비 오는 날에는 어떻게 대응하나요?",
   ];
+  // 한 번에 보여줄 추천 질문 수 (대화창 공간을 많이 차지하지 않도록 적게 둔다)
+  var SUGGEST_COUNT = 3;
   // 출처 표시용 짧은 문서 이름 (없으면 DB의 문서 제목을 그대로 씀)
   var SOURCE_NAMES = {
     "index.html": "홈페이지",
@@ -96,6 +103,7 @@
   };
 
   var history = []; // {role:'user'|'assistant', content}
+  var asked = []; // 답변을 받은 추천 질문 (다시 추천하지 않음)
   var busy = false;
 
   function el(tag, cls, html) {
@@ -175,11 +183,14 @@
       showSuggestions();
     }
 
+    // 답변이 끝날 때마다 아직 묻지 않은 추천 질문을 다시 보여준다. 다 물어봤으면 표시하지 않는다.
     function showSuggestions() {
       var old = log.querySelector(".fs-suggest");
       if (old) old.remove();
+      var remaining = SUGGESTIONS.filter(function (q) { return asked.indexOf(q) < 0; }).slice(0, SUGGEST_COUNT);
+      if (!remaining.length) return;
       var box = el("div", "fs-suggest");
-      SUGGESTIONS.forEach(function (q) {
+      remaining.forEach(function (q) {
         var b = el("button");
         b.type = "button";
         b.textContent = q;
@@ -239,12 +250,17 @@
           }
           renderSources(pending, data.sources);
           history.push({ role: "user", content: question }, { role: "assistant", content: data.answer });
+          // 직접 입력한 질문이 추천 질문과 같아도 답을 받은 것으로 본다
+          if (SUGGESTIONS.indexOf(question) >= 0 && asked.indexOf(question) < 0) asked.push(question);
+          showSuggestions();
         })
         .catch(function (err) {
           pending.classList.add("error");
           pending.textContent = err && err.message && err.message !== "Failed to fetch"
             ? err.message
             : "네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.";
+          // 실패한 추천 질문은 asked에 넣지 않았으므로 다시 눌러 재시도할 수 있다
+          showSuggestions();
         })
         .then(function () {
           busy = false;
