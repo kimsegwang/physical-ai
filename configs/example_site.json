@@ -18,9 +18,9 @@
   "counting": {
     "anchor": "bottom",
     "a_to_b": "out",
-    "gates": [
-      {"name": "gate1", "line_a": [[0.2, 0.5], [0.5, 0.5]], "line_b": [[0.2, 0.6], [0.5, 0.6]]},
-      {"name": "gate2", "line_a": [[0.5, 0.5], [0.8, 0.5]], "line_b": [[0.5, 0.6], [0.8, 0.6]]}
+    "passages": [
+      {"name": "exit7_stairs", "line_a": [[0.2, 0.5], [0.5, 0.5]], "line_b": [[0.2, 0.6], [0.5, 0.6]], "width_m": 2.4, "kind": "stairs"},
+      {"name": "exit7_flat", "line_a": [[0.5, 0.5], [0.8, 0.5]], "line_b": [[0.5, 0.6], [0.8, 0.6]], "width_m": 1.8, "kind": "flat"}
     ]
   }
 }

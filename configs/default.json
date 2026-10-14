@@ -50,9 +50,9 @@
     "velocity_smoothing": 0.5
   },
   "counting": {
-    "gates": [
+    "passages": [
       {
-        "name": "gate1",
+        "name": "exit1",
         "line_a": [
           [
             0.05,
@@ -72,7 +72,9 @@
             0.95,
             0.55
           ]
-        ]
+        ],
+        "width_m": 1.0,
+        "kind": "flat"
       }
     ],
     "a_to_b": "out",
@@ -81,7 +83,8 @@
     "recount_block_sec": 5.0
   },
   "aggregation": {
-    "gate_limit_per_min": 60,
+    "flat_limit_per_m": 82.0,
+    "stairs_limit_per_m": 56.0,
     "spike_ratio": 3.0,
     "spike_min_diff": 10,
     "spike_history_min": 15,
@@ -89,10 +92,10 @@
   },
   "adaptive": {
     "enabled": true,
-    "peak_enter_per_gate": 10.0,
-    "peak_exit_per_gate": 7.0,
-    "quiet_enter_per_gate": 1.0,
-    "quiet_exit_per_gate": 2.0,
+    "peak_enter_ratio": 0.4,
+    "peak_exit_ratio": 0.28,
+    "quiet_enter_ratio": 0.025,
+    "quiet_exit_ratio": 0.035,
     "mode_profiles": {
       "peak": {
         "detection": {

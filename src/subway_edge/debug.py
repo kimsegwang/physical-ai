@@ -32,10 +32,10 @@ def draw_overlay(result: FrameResult, cfg: PipelineConfig) -> np.ndarray:
         pts = np.array([_px(p, w, h) for p in poly], np.int32)
         cv2.polylines(img, [pts], True, _MASK, 2)
 
-    for gate in cfg.counting.gates:
-        cv2.line(img, _px(gate.line_a[0], w, h), _px(gate.line_a[1], w, h), _LINE_A, 2)
-        cv2.line(img, _px(gate.line_b[0], w, h), _px(gate.line_b[1], w, h), _LINE_B, 2)
-        cv2.putText(img, gate.name, _px(gate.line_a[0], w, h), cv2.FONT_HERSHEY_SIMPLEX, 0.5, _LINE_A, 1)
+    for passage in cfg.counting.passages:
+        cv2.line(img, _px(passage.line_a[0], w, h), _px(passage.line_a[1], w, h), _LINE_A, 2)
+        cv2.line(img, _px(passage.line_b[0], w, h), _px(passage.line_b[1], w, h), _LINE_B, 2)
+        cv2.putText(img, passage.name, _px(passage.line_a[0], w, h), cv2.FONT_HERSHEY_SIMPLEX, 0.5, _LINE_A, 1)
 
     for t in result.tracks:
         bx1, by1 = _px(t.box[:2], w, h)

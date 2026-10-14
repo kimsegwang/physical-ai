@@ -18,6 +18,7 @@ import pytest
 from subway_edge.aggregation import MinuteAggregator
 from subway_edge.config import (
     AggregationConfig,
+    PassageConfig,
     PipelineConfig,
     apply_overrides,
     config_to_dict,
@@ -220,16 +221,34 @@ def close_minute(agg: MinuteAggregator, minute: int, n_in: int = 0, n_out: int =
     return record
 
 
+def passage(width_m: float = 1.0, kind: str = "flat", name: str = "p") -> PassageConfig:
+    return PassageConfig(name, [[0.0, 0.45], [1.0, 0.45]], [[0.0, 0.55], [1.0, 0.55]], width_m=width_m, kind=kind)
+
+
+def test_capacity_adds_width_times_limit_by_kind():
+    cfg = AggregationConfig()
+    assert cfg.capacity_per_min([passage(2.0, "flat")]) == 164.0  # 2m × 82
+    assert cfg.capacity_per_min([passage(1.5, "stairs")]) == 84.0  # 1.5m × 56
+    assert cfg.capacity_per_min([passage(2.0, "flat"), passage(1.5, "stairs")]) == 248.0
+
+
 def test_aggregation_clips_over_physical_limit():
-    agg = MinuteAggregator(AggregationConfig(gate_limit_per_min=60), num_gates=2)
+    agg = MinuteAggregator(AggregationConfig(flat_limit_per_m=60), [passage(1.0), passage(1.0)])
     record = close_minute(agg, 0, n_in=30, n_out=150)
     assert record["out"] == 120 and record["raw_out"] == 150
     assert record["in"] == 30 and record["raw_in"] == 30
     assert record["flags"] == ["clipped_out"]
 
 
+def test_aggregation_stairs_limit_is_lower_and_stays_integer():
+    agg = MinuteAggregator(AggregationConfig(), [passage(1.5, "stairs")])  # 용량 84
+    record = close_minute(agg, 0, n_out=100)
+    assert record["out"] == 84 and isinstance(record["out"], int)
+    assert record["flags"] == ["clipped_out"]
+
+
 def test_aggregation_flags_spike_without_changing_value():
-    agg = MinuteAggregator(AggregationConfig(), num_gates=2)
+    agg = MinuteAggregator(AggregationConfig(), [passage(1.0), passage(1.0)])
     for m in range(15):
         assert close_minute(agg, m, n_in=5, n_out=5)["flags"] == []
     record = close_minute(agg, 15, n_in=5, n_out=40)  # 경기 종료 같은 급증
@@ -238,17 +257,17 @@ def test_aggregation_flags_spike_without_changing_value():
 
 
 def test_aggregation_small_jump_or_short_history_is_not_spike():
-    agg = MinuteAggregator(AggregationConfig(), num_gates=1)
+    agg = MinuteAggregator(AggregationConfig(), [passage()])
     assert close_minute(agg, 0, n_out=0)["flags"] == []
     assert close_minute(agg, 1, n_out=30)["flags"] == []  # 이력 부족
-    agg = MinuteAggregator(AggregationConfig(), num_gates=1)
+    agg = MinuteAggregator(AggregationConfig(), [passage()])
     for m in range(5):
         close_minute(agg, m)
     assert close_minute(agg, 5, n_out=3)["flags"] == []  # 0 → 3명은 차이가 작음
 
 
 def test_aggregation_emits_empty_minutes():
-    agg = MinuteAggregator(AggregationConfig(), num_gates=1)
+    agg = MinuteAggregator(AggregationConfig(), [passage()])
     agg.tick(0.0)
     records = agg.tick(185.0)
     assert [r["minute_start"] for r in records] == [0, 60, 120]
@@ -261,27 +280,42 @@ def minute(n_in: int, n_out: int = 0) -> dict:
     return {"in": n_in, "out": n_out}
 
 
+CAP = 100.0  # 비율 계산이 쉽도록 분당 통로 용량 100명으로 둔다
+
+
 def test_controller_congestion_modes_with_hysteresis():
     ctrl = AdaptiveController(make_config())
     assert ctrl.mode == "normal"
-    assert ctrl.on_minute(minute(12, 8), num_gates=2)  # 게이트당 10명 → peak
+    assert ctrl.on_minute(minute(25, 15), capacity=CAP)  # 0.40 → peak
     cfg = ctrl.config
     assert ctrl.mode == "peak"
     assert cfg.detection.conf_threshold == 0.35 and cfg.detection.nms_iou == 0.6
     assert cfg.tracking.track_buffer == 40 and cfg.tracking.match_iou_min == 0.15
-    assert not ctrl.on_minute(minute(16), num_gates=2)  # 8명/게이트: 복귀 기준(7) 이상 → 유지
-    assert ctrl.on_minute(minute(13), num_gates=2) and ctrl.mode == "normal"  # 6.5명 → normal
+    assert not ctrl.on_minute(minute(30), capacity=CAP)  # 0.30: 복귀 기준(0.28) 이상 → 유지
+    assert ctrl.on_minute(minute(27), capacity=CAP) and ctrl.mode == "normal"  # 0.27 → normal
     assert ctrl.config.tracking.match_iou_min == 0.2
 
-    assert ctrl.on_minute(minute(2), num_gates=2) and ctrl.mode == "quiet"  # 1명 → quiet
+    assert ctrl.on_minute(minute(2), capacity=CAP) and ctrl.mode == "quiet"  # 0.02 → quiet
     assert ctrl.config.detection.conf_threshold == 0.45
-    assert not ctrl.on_minute(minute(3), num_gates=2)  # 1.5명: 복귀 기준(2) 미만 → 유지
-    assert ctrl.on_minute(minute(4), num_gates=2) and ctrl.mode == "normal"
+    assert not ctrl.on_minute(minute(3), capacity=CAP)  # 0.03: 복귀 기준(0.035) 미만 → 유지
+    assert ctrl.on_minute(minute(4), capacity=CAP) and ctrl.mode == "normal"
+
+
+def test_controller_same_people_is_busier_on_stairs():
+    """같은 인원이라도 계단은 용량이 작아 먼저 peak가 된다."""
+    agg = AggregationConfig()
+    flat = AdaptiveController(make_config())
+    stairs = AdaptiveController(make_config())
+    assert not flat.on_minute(minute(25), capacity=agg.capacity_per_min([passage(1.0, "flat")]))  # 25/82 ≈ 0.30
+    assert stairs.on_minute(minute(25), capacity=agg.capacity_per_min([passage(1.0, "stairs")]))  # 25/56 ≈ 0.45
+    assert (flat.mode, stairs.mode) == ("normal", "peak")
+    with pytest.raises(ValueError):
+        flat.on_minute(minute(1), capacity=0)
 
 
 def test_controller_weather_and_heavy_coat():
     ctrl = AdaptiveController(make_config())
-    ctrl.on_minute(minute(10), num_gates=1)  # peak
+    ctrl.on_minute(minute(40), capacity=CAP)  # peak
     assert ctrl.set_weather("snow", heavy_coat=True)
     cfg = ctrl.config
     assert cfg.preprocess.apply_wet_floor_masks and cfg.counting.min_track_len == 8
@@ -304,7 +338,7 @@ def test_profiles_never_weaken_site_settings():
         }
     )
     ctrl = AdaptiveController(strong)
-    ctrl.on_minute(minute(10), num_gates=1)  # peak
+    ctrl.on_minute(minute(40), capacity=CAP)  # peak
     ctrl.set_weather("rain", heavy_coat=True)
     cfg = ctrl.config
     assert ctrl.mode == "peak"
@@ -318,12 +352,12 @@ def test_profiles_never_weaken_site_settings():
 
     # quiet: conf = max(현장값, 0.45)
     shadowy = AdaptiveController(make_config({"detection": {"conf_threshold": 0.5}}))
-    shadowy.on_minute(minute(0), num_gates=1)
+    shadowy.on_minute(minute(0), capacity=CAP)
     assert shadowy.mode == "quiet" and shadowy.config.detection.conf_threshold == 0.5
 
     # 기본 현장값이면 프로필 값이 그대로 적용된다
     default = AdaptiveController(make_config())
-    default.on_minute(minute(10), num_gates=1)
+    default.on_minute(minute(40), capacity=CAP)
     cfg = default.config
     assert (cfg.tracking.track_buffer, cfg.detection.nms_iou) == (40, 0.6)
     assert (cfg.tracking.match_iou_min, cfg.detection.conf_threshold) == (0.15, 0.35)
@@ -394,10 +428,10 @@ def test_pipeline_switches_tracker_settings_after_busy_minute():
     pipe = EdgePipeline(make_config(), BlobDetector())
     blank = draw([])
     pipe.process(blank, 0.0)
-    for i in range(10):
-        pipe.aggregator.add(CountEvent(1.0, i, "gate1", "out"))
+    for i in range(33):  # 기본 구간: 평지 1m, 용량 82 → 33/82 ≈ 0.40
+        pipe.aggregator.add(CountEvent(1.0, i, "exit1", "out"))
     result = pipe.process(blank, 60.0)
-    assert result.records[0]["out"] == 10 and result.records[0]["mode"] == "normal"
+    assert result.records[0]["out"] == 33 and result.records[0]["mode"] == "normal"
     assert result.mode == "peak"
     assert pipe.tracker.cfg.match_iou_min == 0.15 and pipe.tracker.high_thresh == 0.35
 
@@ -473,7 +507,9 @@ def test_default_json_matches_code_defaults():
 
 def test_example_site_config_overrides_partially():
     cfg = load_config(ROOT / "configs" / "example_site.json")
-    assert [g.name for g in cfg.counting.gates] == ["gate1", "gate2"]
+    assert [p.name for p in cfg.counting.passages] == ["exit7_stairs", "exit7_flat"]
+    assert [p.kind for p in cfg.counting.passages] == ["stairs", "flat"]
+    assert cfg.aggregation.capacity_per_min(cfg.counting.passages) == 2.4 * 56 + 1.8 * 82
     assert cfg.counting.anchor == "bottom"
     assert cfg.detection.conf_threshold == 0.4  # 적지 않은 값은 기본값 유지
     assert cfg.adaptive.mode_profiles == PipelineConfig().adaptive.mode_profiles
@@ -485,3 +521,13 @@ def test_unknown_config_key_is_rejected():
         load_config(overrides={"detection": {"conf_treshold": 0.3}})
     with pytest.raises(ValueError):
         load_config(overrides={"preprocess": {"clahe_mode": "sometimes"}})
+
+
+def test_passage_requires_valid_width_and_kind():
+    lines = {"line_a": [[0.0, 0.4], [1.0, 0.4]], "line_b": [[0.0, 0.6], [1.0, 0.6]]}
+    with pytest.raises(TypeError):  # 폭은 현장에서 재서 꼭 적어야 한다
+        load_config(overrides={"counting": {"passages": [{"name": "exit1", **lines}]}})
+    with pytest.raises(ValueError):
+        load_config(overrides={"counting": {"passages": [{"name": "exit1", **lines, "width_m": 0}]}})
+    with pytest.raises(ValueError):
+        load_config(overrides={"counting": {"passages": [{"name": "exit1", **lines, "width_m": 2.0, "kind": "ramp"}]}})
