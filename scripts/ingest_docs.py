@@ -46,12 +46,14 @@ SOURCES = [
     "report/hardware.md",
     "index.html",
     "docs.html",
+    "hardware.html",
 ]
 
 # 첫 '# ' 제목이 문서 제목으로 적절하지 않은 경우 (템플릿 문구, 히어로 문구 등)
 TITLE_OVERRIDES = {
     "index.html": "FlowSight 홈페이지",
     "docs.html": "FlowSight 추가 문서: 비전 모델 비교",
+    "hardware.html": "FlowSight 추가 문서: 하드웨어 구성",
 }
 
 EMBED_MODEL ="gemini-embedding-2"
