@@ -43,13 +43,13 @@ SOURCES = [
     "report/model_plan.md",
     "report/vision_models.md",
     "report/checklist.md",
+    "report/hardware.md",
     "index.html",
     "docs.html",
 ]
 
 # 첫 '# ' 제목이 문서 제목으로 적절하지 않은 경우 (템플릿 문구, 히어로 문구 등)
 TITLE_OVERRIDES = {
-    "PRD/PRD.md": "PRD: 지하철 출구별 혼잡도 예측 시스템",
     "index.html": "FlowSight 홈페이지",
     "docs.html": "FlowSight 추가 문서: 비전 모델 비교",
 }

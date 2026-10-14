@@ -1,6 +1,6 @@
 # 비전 모델 조사 – YOLOE · DINO-X · SAM 3 · SigLIP · OCR · MediaPipe
 
-> 개찰구 혼잡도 프로젝트에서 쓸 수 있는 비전 모델 6종의 **기능, 사용 예시, 프로젝트 적용 방안**을 정리한 문서입니다.
+> 출구별 혼잡도 프로젝트에서 쓸 수 있는 비전 모델 6종의 **기능, 사용 예시, 프로젝트 적용 방안**을 정리한 문서입니다.
 > 현재 엣지 파이프라인(YOLO + ByteTrack + 이중 통과선)은 `report/preprocess.md`를 따릅니다.
 >
 > 작성 기준: 2026-10. 모델 버전·API는 자주 바뀌므로 실제 적용 전에 공식 저장소 문서를 다시 확인합니다.
@@ -149,7 +149,7 @@ for obj in task.result["objects"]:
 > SDK 버전에 따라 `api_path`, 결과 형식이 달라질 수 있으므로 공식 문서를 확인한다.
 
 ### 3.3 프로젝트 적용
-- **운영 개찰구 영상에는 사용 불가** (프레임을 외부로 전송하므로 개인정보 규칙 위반)
+- **운영 중인 출구·통로 영상에는 사용 불가** (프레임을 외부로 전송하므로 개인정보 규칙 위반)
 - 쓸 수 있는 경우: 라이선스상 허용된 **공개 보행자 데이터셋**의 라벨 생성, YOLOE·SAM 3 결과와의 비교 기준(상한선) 측정
 - 비용이 호출당 과금이라 대량 라벨링에는 SAM 3·YOLOE가 더 현실적
 
@@ -233,7 +233,7 @@ clf = pipeline("zero-shot-image-classification",
                model="google/siglip2-base-patch16-224")
 
 labels = [
-    "a clear view of subway ticket gates",
+    "a clear view of subway exit stairs",
     "a camera view blocked by an object",
     "a very dark camera image",
     "a wet reflective floor",
@@ -314,14 +314,14 @@ ocr = PaddleOCR(lang="korean",
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False)
-for res in ocr.predict("data/gate_sign.jpg"):
+for res in ocr.predict("data/exit_sign.jpg"):
     for text, score in zip(res["rec_texts"], res["rec_scores"]):
         print(text, round(score, 3))
 ```
 
 ### 6.3 프로젝트 적용
 - **검증 시간 동기화**: 수동 카운트와 AI 카운트를 분 단위로 맞출 때, 녹화 영상의 OSD 시각을 자동으로 읽음 (`preprocess.md` 4장)
-- **설치 정보 확인**: 개찰구 번호·출구 표지판을 읽어 카메라-게이트 매핑 설정 검증
+- **설치 정보 확인**: 출구 번호 표지판을 읽어 카메라-통과 구간(`counting.passages`) 매핑 설정 검증
 - OSD 영역만 잘라서 처리하므로 엣지에서도 가볍게 실행 가능 (예: 1분에 1회)
 - 주의: 교통카드·휴대폰 화면 등 **개인 정보가 담긴 글자는 읽지 않도록** ROI를 OSD·표지판으로 한정
 
@@ -393,7 +393,7 @@ for pose in result.pose_landmarks:
 
 ### 7.3 프로젝트 적용
 - **검증 영상 검토 시 얼굴 블러**: 수동 카운트 작업자 화면에 비식별화된 영상을 보여주는 용도 (`--show` 화면 등)
-- 포즈 랜드마크는 쓰러짐 감지 같은 확장 기능 후보이나, 개찰구 카운팅 자체에는 불필요
+- 포즈 랜드마크는 쓰러짐 감지 같은 확장 기능 후보이나, 출구 카운팅 자체에는 불필요
 - 한계: BlazeFace 단거리 모델은 약 2m 이내 정면 얼굴 기준이라 **천장 CCTV의 작은 얼굴은 놓칠 수 있음** → 비식별화 용도라면 YOLO 사람 박스 상단을 함께 블러하는 방식이 더 안전. 포즈도 멀리 있는 다수 인원에는 정확도가 낮음
 
 ---
