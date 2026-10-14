@@ -76,9 +76,17 @@
     ".fs-msg.notice{background:#fffbeb;color:#6b4e00;box-shadow:inset 0 0 0 1px #f5d98b}",
     ".fs-msg code{background:var(--fs-soft);padding:1px 5px;border-radius:5px;font-size:13px}",
     ".fs-sources{margin-top:8px;padding-top:6px;border-top:1px solid var(--fs-soft);font-size:11.5px;line-height:16px;color:#76767e;white-space:normal}",
-    ".fs-suggest{display:flex;flex-wrap:wrap;gap:8px}",
-    ".fs-suggest button{border:1px solid var(--fs-line);background:var(--fs-surface);color:var(--fs-text);font:inherit;font-size:13px;padding:7px 12px;border-radius:999px;cursor:pointer;text-align:left}",
-    ".fs-suggest button:hover{background:var(--fs-soft)}",
+    ".fs-suggest{display:flex;flex-direction:column;gap:6px}",
+    ".fs-suggest-label{font-size:12px;font-weight:600;color:var(--fs-muted);padding-left:4px}",
+    ".fs-suggest-list{background:var(--fs-surface);border:1px solid var(--fs-line);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(11,28,48,.06)}",
+    ".fs-suggest-list button{display:flex;align-items:center;gap:10px;width:100%;border:0;border-top:1px solid var(--fs-soft);background:transparent;color:var(--fs-text);font:inherit;font-size:13.5px;line-height:20px;padding:11px 14px;cursor:pointer;text-align:left;word-break:keep-all;transition:background .15s ease}",
+    ".fs-suggest-list button:first-child{border-top:0}",
+    ".fs-suggest-list button:hover{background:var(--fs-soft)}",
+    ".fs-suggest-list button:focus-visible{outline-offset:-3px}",
+    ".fs-suggest-list svg{width:16px;height:16px;flex-shrink:0;color:#76767e;transition:color .15s ease,transform .15s ease}",
+    ".fs-suggest-list .fs-q{flex:1}",
+    ".fs-suggest-list button:hover svg{color:#497cff}",
+    ".fs-suggest-list button:hover .fs-arrow{transform:translateX(2px)}",
     ".fs-typing{display:inline-flex;gap:4px;align-items:center;height:22px}",
     ".fs-typing span{width:7px;height:7px;border-radius:50%;background:#76767e;animation:fs-bounce 1.2s infinite ease-in-out}",
     ".fs-typing span:nth-child(2){animation-delay:.15s}.fs-typing span:nth-child(3){animation-delay:.3s}",
@@ -100,6 +108,8 @@
     close: '<svg class="fs-i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/></svg>',
     send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    ask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>',
+    arrow: '<svg class="fs-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
   };
 
   var history = []; // {role:'user'|'assistant', content}
@@ -190,16 +200,19 @@
       var remaining = SUGGESTIONS.filter(function (q) { return asked.indexOf(q) < 0; }).slice(0, SUGGEST_COUNT);
       if (!remaining.length) return;
       var box = el("div", "fs-suggest");
+      box.appendChild(el("div", "fs-suggest-label", asked.length || history.length ? "이런 것도 물어보세요" : "이런 걸 물어볼 수 있어요"));
+      var list = el("div", "fs-suggest-list");
       remaining.forEach(function (q) {
-        var b = el("button");
+        var b = el("button", null, ICON.ask + '<span class="fs-q"></span>' + ICON.arrow);
         b.type = "button";
-        b.textContent = q;
+        b.querySelector(".fs-q").textContent = q;
         b.addEventListener("click", function () {
           box.remove();
           ask(q);
         });
-        box.appendChild(b);
+        list.appendChild(b);
       });
+      box.appendChild(list);
       log.appendChild(box);
       scrollDown();
     }
