@@ -61,6 +61,23 @@ EMBED_DIM = 768  # DB의 vector(768)과 맞춘다
 EMBED_BATCH = 50
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
+# 문서별 섹터. 값은 DB의 document_categories.slug와 같아야 한다
+# (supabase/migrations/20261014000000_rag_document_categories.sql).
+# 섹터는 파일 위치가 아니라 내용 기준이다 (예: docs.html은 비전 모델 비교라 model).
+CATEGORY_SLUGS = ("planning", "pipeline", "model", "hardware", "field", "website")
+CATEGORIES = {
+    "PRD/PRD.md": "planning",
+    "README.md": "pipeline",
+    "report/preprocess.md": "pipeline",
+    "report/model_plan.md": "model",
+    "report/vision_models.md": "model",
+    "docs.html": "model",
+    "report/hardware.md": "hardware",
+    "hardware.html": "hardware",
+    "report/checklist.md": "field",
+    "index.html": "website",
+}
+
 
 def load_dotenv(path: Path) -> None:
     """.env가 있으면 아직 설정되지 않은 환경 변수만 채운다 (값을 출력하지 않는다)."""
@@ -146,17 +163,26 @@ class Supabase:
         return {**self.headers, "Prefer": prefer} if prefer else self.headers
 
     def list_documents(self) -> dict[str, dict]:
-        rows = http_json("GET", f"{self.rest}/documents?select=id,source,content_hash", self._h())
+        rows = http_json("GET", f"{self.rest}/documents?select=id,source,content_hash,category", self._h())
         return {r["source"]: r for r in rows}
 
-    def upsert_document(self, source: str, title: str) -> int:
+    def upsert_document(self, source: str, title: str, category: str) -> int:
         rows = http_json(
             "POST",
             f"{self.rest}/documents?on_conflict=source",
             self._h("resolution=merge-duplicates,return=representation"),
-            [{"source": source, "title": title}],
+            [{"source": source, "title": title, "category": category}],
         )
         return rows[0]["id"]
+
+    def set_category(self, document_id: int, category: str) -> None:
+        """내용은 그대로이고 섹터만 바뀐 경우 (다시 임베딩하지 않는다)."""
+        http_json(
+            "PATCH",
+            f"{self.rest}/documents?id=eq.{document_id}",
+            self._h("return=minimal"),
+            {"category": category},
+        )
 
     def upsert_chunks(self, rows: list[dict]) -> None:
         for i in range(0, len(rows), 100):
@@ -194,6 +220,11 @@ def main() -> int:
     p.add_argument("--force", action="store_true", help="변경 여부와 상관없이 전부 다시 적재")
     args = p.parse_args()
 
+    missing_cat = [rel for rel in SOURCES if CATEGORIES.get(rel) not in CATEGORY_SLUGS]
+    if missing_cat:
+        print(f"섹터가 없거나 잘못된 문서: {', '.join(missing_cat)} (CATEGORIES에 추가하세요)", file=sys.stderr)
+        return 1
+
     docs = []
     for rel in SOURCES:
         title, text = read_source(rel)
@@ -206,7 +237,7 @@ def main() -> int:
         for rel, title, chunks, _ in docs:
             lens = [len(c.content) for c in chunks]
             total += len(chunks)
-            print(f"{rel:28s} 청크 {len(chunks):3d}개  최대 {max(lens, default=0):4d}자  [{title}]")
+            print(f"{rel:28s} {CATEGORIES[rel]:9s} 청크 {len(chunks):3d}개  최대 {max(lens, default=0):4d}자  [{title}]")
         print(f"합계 {total}개")
         return 0
 
@@ -221,10 +252,16 @@ def main() -> int:
     existing = db.list_documents()
 
     for rel, title, chunks, digest in docs:
-        if not args.force and existing.get(rel, {}).get("content_hash") == digest:
-            print(f"건너뜀 (변경 없음): {rel}")
+        category = CATEGORIES[rel]
+        old = existing.get(rel, {})
+        if not args.force and old.get("content_hash") == digest:
+            if old.get("category") != category:
+                db.set_category(old["id"], category)
+                print(f"섹터만 변경: {rel} → {category}")
+            else:
+                print(f"건너뜀 (변경 없음): {rel}")
             continue
-        doc_id = db.upsert_document(rel, title)
+        doc_id = db.upsert_document(rel, title, category)
         vectors = gemini.embed([embed_text(title, c) for c in chunks])
         rows = [
             {
