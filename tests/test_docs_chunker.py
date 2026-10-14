@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from subway_edge.docs_chunker import (
+from subway_rag.docs_chunker import (
     chunk_markdown,
     document_title,
     html_to_markdown,

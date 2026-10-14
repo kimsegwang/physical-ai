@@ -30,8 +30,9 @@
 │   ├── controller.py      혼잡도·날씨별 설정 자동 전환
 │   ├── pipeline.py        1~9단계 연결
 │   ├── publisher.py       결과 전송 인터페이스 (지금은 표준 출력)
-│   ├── debug.py           --show 디버그 화면 (저장 안 함)
-│   └── docs_chunker.py    챗봇용 문서 청킹
+│   └── debug.py           --show 디버그 화면 (저장 안 함)
+├── src/subway_rag/        챗봇용 도구 (엣지 장비에는 올리지 않음)
+│   └── docs_chunker.py    문서 청킹
 ├── scripts/run.py         실행 진입점
 ├── scripts/ingest_docs.py 챗봇 문서 임베딩·적재
 ├── chatbot/               홈페이지 챗봇 위젯
@@ -41,8 +42,10 @@
 │   └── example_site.json  현장 설정 예시 (바꿀 값만 적음)
 ├── tests/                 테스트 (YOLO 없이 가짜 검출기로 실행)
 ├── report/                현장 조사 체크리스트, 전처리 설계 가이드
+│   └── reference/         이 프로젝트와 무관한 참고 자료 (챗봇 검색 제외)
 ├── PRD/                   제품 요구사항 문서
-├── index.html, images/, stitch/   제품 소개 홈페이지 (GitHub Pages)
+├── index.html, docs.html, images/   제품 소개 홈페이지 (GitHub Pages, main의 루트를 배포)
+├── design/                홈페이지 디자인 시안 (Stitch)
 ├── data/                  테스트 영상·이미지 (Git에 올리지 않음)
 └── models/                모델 파일 (Git에 올리지 않음)
 ```
@@ -127,7 +130,7 @@ python scripts/run.py --source rtsp://<카메라 주소>
 | `chatbot/chatbot.js` | 홈페이지 위젯 (`index.html`, `docs.html`에서 불러옴). 대화는 탭 메모리에만 있음 |
 | `supabase/functions/chat/` | 검색·답변 Edge Function |
 | `supabase/migrations/` | `documents`, `document_chunks`(vector 768) 테이블, `match_document_chunks` 검색 함수 |
-| `src/subway_edge/docs_chunker.py` | 문서 청킹 (소제목 단위, 조각당 최대 900자, 긴 표는 머리행을 반복해서 분할) |
+| `src/subway_rag/docs_chunker.py` | 문서 청킹 (소제목 단위, 조각당 최대 900자, 긴 표는 머리행을 반복해서 분할) |
 | `scripts/ingest_docs.py` | 문서 → 청크 → 임베딩 → DB 적재 |
 
 문서를 고친 뒤에는 다시 적재합니다. 바뀐 문서만 다시 임베딩합니다.
