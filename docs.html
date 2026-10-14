@@ -21,7 +21,7 @@
 <span class="text-surface-container-high">엣지 검출기는 경량 YOLO</span>입니다
           </h1>
 <p class="font-body-lg text-body-lg text-surface-variant max-w-xl mt-space-sm font-normal">
-            YOLOE · DINO-X · SAM 3 · SigLIP · OCR · MediaPipe의 기능과 사용 예시를 정리하고, 지금 쓰는 YOLOv8n + ByteTrack이 개찰구 카운팅에 더 맞는 이유를 설명합니다. 6개 모델은 버리지 않고, 개발·검증을 돕는 자리에 배치합니다.
+            YOLOE · DINO-X · SAM 3 · SigLIP · OCR · MediaPipe의 기능과 사용 예시를 정리하고, 지금 쓰는 YOLOv8n + ByteTrack이 출구·통로 카운팅에 더 맞는 이유를 설명합니다. 6개 모델은 버리지 않고, 개발·검증을 돕는 자리에 배치합니다.
           </p>
 </div>
 <div class="flex flex-wrap items-center gap-space-md pt-space-xs">
@@ -41,7 +41,7 @@
 <div class="flex items-center justify-between pb-space-sm">
 <div class="flex flex-col">
 <span class="font-headline-sm text-headline-sm font-bold text-on-surface">모델별 판정 요약</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant text-xs">엣지 개찰구 카운팅 기준</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-xs">엣지 출구 카운팅 기준</span>
 </div>
 <span class="font-label-caps text-label-caps px-2 py-1 bg-surface-container rounded-full text-secondary">7 MODELS</span>
 </div>
@@ -192,7 +192,7 @@ masks, boxes, scores = out["masks"], out["boxes"], out["scores"]</code></pre>
 </ul>
 <pre class="bg-primary-container text-surface-container-high rounded-2xl p-space-md text-[12.5px] leading-5 overflow-x-auto"><code>clf = pipeline("zero-shot-image-classification",
                model="google/siglip2-base-patch16-224")
-clf(image, candidate_labels=["a clear view of ticket gates",
+clf(image, candidate_labels=["a clear view of subway exit stairs",
     "a camera view blocked by an object", "a wet reflective floor"])</code></pre>
 <p class="font-body-sm text-body-sm text-on-surface-variant bg-surface-container-low rounded-2xl p-space-md"><strong class="text-on-surface">우리 프로젝트에서:</strong> 1분에 한 번 카메라 가림·암전·젖은 바닥을 판단해, 카운트 0이 "사람이 없어서"인지 "카메라 문제"인지 구분합니다.</p>
 </article>
@@ -249,7 +249,7 @@ for det in result.detections:
 <div class="flex flex-col gap-space-xs max-w-3xl">
 <span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Why YOLOv8n + ByteTrack</span>
 <h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg font-bold tracking-tight">왜 지금 모델이 더 적합한가</h2>
-<p class="font-body-lg text-body-lg text-on-surface-variant">개찰구 카운팅 검출기가 반드시 지켜야 하는 조건 네 가지로 비교했습니다.</p>
+<p class="font-body-lg text-body-lg text-on-surface-variant">출구 카운팅 검출기가 반드시 지켜야 하는 조건 네 가지로 비교했습니다.</p>
 </div>
 
 <!-- 4가지 기준 -->
@@ -366,7 +366,7 @@ for det in result.detections:
 <span class="w-10 h-10 shrink-0 rounded-2xl bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-on-tertiary-container">fact_check</span></span>
 <div class="flex flex-col">
 <span class="font-headline-sm text-headline-sm font-bold">로직 검증을 마친 구조</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">세기·추적·집계·설정 전환을 시나리오 테스트 33개로 확인했습니다. 검출기를 바꾸면 신뢰도·박스 크기 기준을 다시 재야 합니다.</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">세기·추적·집계·설정 전환을 시나리오 테스트 37개로 확인했습니다. 검출기를 바꾸면 신뢰도·박스 크기 기준을 다시 재야 합니다.</span>
 </div>
 </div>
 <div class="flex items-start gap-space-md">
