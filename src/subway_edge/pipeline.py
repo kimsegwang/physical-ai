@@ -39,12 +39,11 @@ class EdgePipeline:
         self.publisher = publisher  # None이면 전송하지 않고 FrameResult.records로만 돌려준다
         self.controller = AdaptiveController(cfg)
         cfg = self.controller.config
-        self.num_gates = len(cfg.counting.gates)
         self.sampler = FrameSampler(cfg.preprocess.process_fps)
         self.preprocessor = Preprocessor(cfg.preprocess)
         self.tracker = ByteTracker(cfg.tracking, cfg.detection.conf_threshold)
         self.counter = LineCounter(cfg.counting)
-        self.aggregator = MinuteAggregator(cfg.aggregation, self.num_gates)
+        self.aggregator = MinuteAggregator(cfg.aggregation, cfg.counting.passages)
 
     @property
     def config(self) -> PipelineConfig:
@@ -70,7 +69,7 @@ class EdgePipeline:
         records = self.aggregator.tick(ts)
         for record in records:
             self._finalize(record)
-            if self.controller.on_minute(record, self.num_gates):
+            if self.controller.on_minute(record, self.aggregator.capacity):
                 self._apply_config()
 
         cfg = self.config

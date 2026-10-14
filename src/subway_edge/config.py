@@ -20,6 +20,7 @@ Polygon = list[Point]
 CLAHE_MODES = ("off", "on", "auto")
 ANCHORS = ("center", "bottom")
 DIRECTIONS = ("in", "out")
+PASSAGE_KINDS = ("flat", "stairs")
 WEATHER_CONDITIONS = ("clear", "cloudy", "rain", "snow")
 
 
@@ -97,38 +98,49 @@ class TrackingConfig:
 
 
 @dataclass(frozen=True)
-class GateConfig:
-    """개찰구 하나의 이중 통과선."""
+class PassageConfig:
+    """통과 구간 하나(출구 계단 앞, 환승 통로 등)의 이중 통과선.
+
+    width_m·kind는 물리 한계와 혼잡도 판단에 쓰는 통로 용량을 정한다.
+    kind는 통과선이 이어지는 구간의 병목 유형이다. 선을 계단 앞 평지에 그어도
+    사람이 계단으로 오르내리면 "stairs"로 둔다.
+    """
 
     name: str
     line_a: list[Point]  # [[x1, y1], [x2, y2]]
     line_b: list[Point]
+    width_m: float  # 통로(계단) 폭. 현장에서 잰 값 (체크리스트 4-3)
+    kind: str = "flat"  # "flat" 평지 / "stairs" 계단
 
     def __post_init__(self) -> None:
         for line in (self.line_a, self.line_b):
             if len(line) != 2 or any(len(p) != 2 for p in line):
                 raise ValueError(f"통과선은 [[x1, y1], [x2, y2]] 형식이어야 합니다: {self.name}")
+        if not self.width_m > 0:
+            raise ValueError(f"width_m은 0보다 커야 합니다: {self.name}")
+        if self.kind not in PASSAGE_KINDS:
+            raise ValueError(f"kind는 {PASSAGE_KINDS} 중 하나여야 합니다: {self.name}")
 
 
-def _default_gates() -> list[GateConfig]:
-    return [GateConfig("gate1", [[0.05, 0.45], [0.95, 0.45]], [[0.05, 0.55], [0.95, 0.55]])]
+def _default_passages() -> list[PassageConfig]:
+    return [PassageConfig("exit1", [[0.05, 0.45], [0.95, 0.45]], [[0.05, 0.55], [0.95, 0.55]], width_m=1.0)]
 
 
 @dataclass(frozen=True)
 class CountingConfig:
     """8단계: 이중 통과선 카운팅."""
 
-    gates: list[GateConfig] = field(default_factory=_default_gates)
+    passages: list[PassageConfig] = field(default_factory=_default_passages)
     a_to_b: str = "out"  # 선 A → 선 B 순서로 지날 때의 방향 ("in" 입장 / "out" 퇴장)
     anchor: str = "center"  # 탑뷰는 center, 비스듬한 각도는 bottom(발 위치)
     min_track_len: int = 5  # 이보다 짧은 궤적은 세지 않음 (반사·광고판 오검출 제거)
     recount_block_sec: float = 5.0  # 같은 ID 재카운트 금지 시간
 
     def __post_init__(self) -> None:
-        gates = [GateConfig(**g) if isinstance(g, dict) else g for g in self.gates]
-        object.__setattr__(self, "gates", gates)
-        if not gates:
-            raise ValueError("gates가 비어 있습니다")
+        passages = [PassageConfig(**p) if isinstance(p, dict) else p for p in self.passages]
+        object.__setattr__(self, "passages", passages)
+        if not passages:
+            raise ValueError("passages가 비어 있습니다")
         if self.a_to_b not in DIRECTIONS:
             raise ValueError(f"a_to_b는 {DIRECTIONS} 중 하나여야 합니다: {self.a_to_b}")
         if self.anchor not in ANCHORS:
@@ -140,13 +152,21 @@ class AggregationConfig:
     """9단계: 1분 집계 + 이상치 처리.
 
     물리 한계를 넘는 값만 잘라내고, 급증은 값을 그대로 두고 플래그만 붙인다.
+    통로 용량 = Σ 구간 폭 × 1m당 한계. 한계는 보행 서비스 수준(Fruin) E등급 상한으로,
+    이 이상은 흐름이 멈추는 수준이라 실제로 나오기 어렵다.
     """
 
-    gate_limit_per_min: int = 60  # 게이트 1개·방향 1개당 분당 최대 통과 인원
+    flat_limit_per_m: float = 82.0  # 평지 폭 1m당 분당 최대 통과 인원
+    stairs_limit_per_m: float = 56.0  # 계단 폭 1m당 분당 최대 통과 인원
     spike_ratio: float = 3.0  # 직전 중앙값의 몇 배 이상이면 급증
     spike_min_diff: int = 10  # 중앙값과의 차이가 이 값 이상이어야 급증
     spike_history_min: int = 15  # 중앙값 계산에 쓰는 직전 분 수
     spike_min_history: int = 5  # 이력이 이보다 적으면 급증 판단을 하지 않음
+
+    def capacity_per_min(self, passages: list[PassageConfig]) -> float:
+        """구간들의 분당 통로 용량(명)."""
+        limits = {"flat": self.flat_limit_per_m, "stairs": self.stairs_limit_per_m}
+        return sum(p.width_m * limits[p.kind] for p in passages)
 
 
 # 프로필 값은 조정 방향만 정한다 (apply_profile 참고).
@@ -172,14 +192,17 @@ def _default_weather_profiles() -> dict[str, dict]:
 class AdaptiveConfig:
     """시간대(혼잡도)·날씨별 설정 자동 전환 (가이드 5장).
 
-    혼잡도는 직전 1분 집계의 게이트당 인원(입장+퇴장)으로 판단한다.
+    혼잡도는 직전 1분 집계의 (입장+퇴장) ÷ 통로 용량(AggregationConfig.capacity_per_min) 비율로 판단한다.
+    비율로 보면 평지와 계단이 섞여 있어도 같은 기준을 쓸 수 있다.
+    평지 1m 기준: 0.40 ≈ 33명(서비스 수준 C등급 시작), 0.28 ≈ 23명(B등급 시작).
+    계단 1m 기준: 0.40 ≈ 22명, 0.28 ≈ 16명.
     """
 
     enabled: bool = True
-    peak_enter_per_gate: float = 10.0  # 이 값 이상이면 peak
-    peak_exit_per_gate: float = 7.0  # peak 상태에서 이 값 미만이면 해제
-    quiet_enter_per_gate: float = 1.0  # 이 값 이하면 quiet
-    quiet_exit_per_gate: float = 2.0  # quiet 상태에서 이 값 이상이면 해제
+    peak_enter_ratio: float = 0.40  # 이 값 이상이면 peak
+    peak_exit_ratio: float = 0.28  # peak 상태에서 이 값 미만이면 해제
+    quiet_enter_ratio: float = 0.025  # 이 값 이하면 quiet (잠정, 평지 1m당 약 2명)
+    quiet_exit_ratio: float = 0.035  # quiet 상태에서 이 값 이상이면 해제 (잠정, 평지 1m당 약 3명)
     mode_profiles: dict[str, dict] = field(default_factory=_default_mode_profiles)
     weather_profiles: dict[str, dict] = field(default_factory=_default_weather_profiles)
     heavy_coat_profile: dict = field(default_factory=lambda: {"detection": {"max_area_ratio": {"at_least": 3.0}}})

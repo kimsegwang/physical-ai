@@ -4,14 +4,14 @@
 - 첫 선을 넘었다가 같은 선으로 되돌아가면 무효
 - 같은 ID는 방향별로 1회만 세고, 카운트 후 recount_block_sec 동안은 어떤 방향도 다시 세지 않는다
 - 궤적이 min_track_len보다 짧으면 통과를 보류했다가 길이가 차면 센다 (그 전에 사라지면 버림)
-- 개찰구 단위 쿨다운은 쓰지 않는다 (꼬리물기 때 두 번째 사람이 누락됨)
+- 통과 구간 단위 쿨다운은 쓰지 않는다 (나란히 지나갈 때 두 번째 사람이 누락됨)
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .config import CountingConfig, GateConfig, Point
+from .config import CountingConfig, PassageConfig, Point
 from .tracking import Track
 
 
@@ -19,15 +19,15 @@ from .tracking import Track
 class CountEvent:
     ts: float
     track_id: int
-    gate: str
+    passage: str
     direction: str  # "in" 또는 "out"
 
 
 @dataclass
 class _TrackState:
     last_anchor: tuple[float, float]
-    armed: dict[str, str] = field(default_factory=dict)  # 게이트별로 먼저 넘은 선 ("a"/"b")
-    pending: list[tuple[str, str]] = field(default_factory=list)  # 길이 미달로 보류된 (게이트, 방향)
+    armed: dict[str, str] = field(default_factory=dict)  # 구간별로 먼저 넘은 선 ("a"/"b")
+    pending: list[tuple[str, str]] = field(default_factory=list)  # 길이 미달로 보류된 (구간, 방향)
     counted: set[str] = field(default_factory=set)  # 이미 센 방향
     last_count_ts: float | None = None
 
@@ -76,12 +76,12 @@ class LineCounter:
             if state is None:
                 self._states[track.track_id] = _TrackState(anchor)
                 continue
-            for gate in cfg.gates:
-                self._check_gate(state, gate, state.last_anchor, anchor)
+            for passage in cfg.passages:
+                self._check_passage(state, passage, state.last_anchor, anchor)
             state.last_anchor = anchor
             if state.pending and track.hits >= cfg.min_track_len:
-                for gate_name, direction in state.pending:
-                    event = self._try_count(state, track.track_id, gate_name, direction, ts)
+                for passage_name, direction in state.pending:
+                    event = self._try_count(state, track.track_id, passage_name, direction, ts)
                     if event:
                         events.append(event)
                 state.pending.clear()
@@ -91,24 +91,24 @@ class LineCounter:
                 del self._states[tid]
         return events
 
-    def _check_gate(self, state: _TrackState, gate: GateConfig, p0, p1) -> None:
+    def _check_passage(self, state: _TrackState, passage: PassageConfig, p0, p1) -> None:
         crossings = []
-        for name, line in (("a", gate.line_a), ("b", gate.line_b)):
+        for name, line in (("a", passage.line_a), ("b", passage.line_b)):
             t = crossing_param(p0, p1, line)
             if t is not None:
                 crossings.append((t, name))
         # 한 프레임에 두 선을 모두 지난 경우 이동 순서대로 처리
         for _, name in sorted(crossings):
-            first = state.armed.get(gate.name)
+            first = state.armed.get(passage.name)
             if first is None:
-                state.armed[gate.name] = name
+                state.armed[passage.name] = name
             elif first == name:
-                state.armed.pop(gate.name)  # 같은 선으로 되돌아감 → 무효
+                state.armed.pop(passage.name)  # 같은 선으로 되돌아감 → 무효
             else:
-                state.armed.pop(gate.name)
-                state.pending.append((gate.name, self._direction(first)))
+                state.armed.pop(passage.name)
+                state.pending.append((passage.name, self._direction(first)))
 
-    def _try_count(self, state: _TrackState, track_id: int, gate: str, direction: str, ts: float) -> CountEvent | None:
+    def _try_count(self, state: _TrackState, track_id: int, passage: str, direction: str, ts: float) -> CountEvent | None:
         if direction in state.counted:
             return None
         if state.last_count_ts is not None and ts - state.last_count_ts < self.cfg.recount_block_sec:
@@ -116,4 +116,4 @@ class LineCounter:
         state.counted.add(direction)
         state.last_count_ts = ts
         self.totals[direction] += 1
-        return CountEvent(ts, track_id, gate, direction)
+        return CountEvent(ts, track_id, passage, direction)

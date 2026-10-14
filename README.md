@@ -4,7 +4,7 @@
 클라우드에는 숫자(1분 집계)만 보내고, 영상은 저장하거나 외부로 보내지 않습니다.
 개찰구 통과 인원은 교통카드 데이터로 이미 집계되므로, 카메라는 교통카드가 모르는 "몇 번 출구로 오가는지"를 맡습니다 ([PRD 1.3](PRD/PRD.md)).
 
-> 코드의 설정 이름(`counting.gates`, `aggregation.gate_limit_per_min`)과 혼잡도 기준(게이트당 분당 인원)은 아직 개찰구 기준입니다. 통로 폭 기준으로 바꾸는 작업이 남아 있습니다 ([report/preprocess.md](report/preprocess.md) 7장).
+물리 한계와 혼잡도 판단은 통과 구간의 폭과 유형(평지·계단)으로 계산한 **통로 용량**을 기준으로 합니다 ([report/preprocess.md](report/preprocess.md) 7장).
 
 - 사람 검출: YOLO 경량 모델 (ultralytics)
 - 추적: ByteTrack 방식 직접 구현 (외부 추적 라이브러리 버전에 의존하지 않음)
@@ -118,6 +118,13 @@ python scripts/run.py --source rtsp://<카메라 주소>
 
 - 현장 설정 JSON에는 **바꿀 값만** 적습니다. 적지 않은 값은 [configs/default.json](configs/default.json)의 기본값을 씁니다. 모르는 키는 오타로 보고 오류를 냅니다.
 - ROI·마스크·통과선 좌표는 모두 **0~1 정규화 좌표**입니다.
+- 통과 구간(`counting.passages`)마다 현장에서 잰 폭 `width_m`(필수)과 유형 `kind`(`flat` 평지 / `stairs` 계단)를 적습니다. 폭을 빠뜨리면 오류를 냅니다.
+
+  ```json
+  {"name": "exit7_stairs", "line_a": [[0.2, 0.5], [0.5, 0.5]], "line_b": [[0.2, 0.6], [0.5, 0.6]], "width_m": 2.4, "kind": "stairs"}
+  ```
+
+- 통로 용량 = Σ 폭 × 1m당 한계(평지 82 / 계단 56명/분). 1분 집계가 용량을 넘으면 잘라내고, 혼잡도는 "분당 인원 ÷ 용량" 비율로 판단합니다 (peak 0.40 이상, 0.28 미만이면 해제).
 - 혼잡도(peak/quiet)·날씨 프로필은 `at_least` / `at_most`로 조정 방향만 정하므로, 현장에서 더 강하게 맞춘 값을 약하게 되돌리지 않습니다.
 
 ## 문서 검색 챗봇 (RAG)
