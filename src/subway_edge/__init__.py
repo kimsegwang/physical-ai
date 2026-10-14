@@ -1,4 +1,4 @@
-"""지하철 개찰구 엣지 전처리·카운팅 파이프라인."""
+"""지하철 출구·환승 통로 엣지 전처리·카운팅 파이프라인."""
 
 from .config import PipelineConfig, load_config
 from .detection import Detection, Detector, YoloDetector

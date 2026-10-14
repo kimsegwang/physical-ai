@@ -137,7 +137,7 @@ def test_jitter_near_second_line_counts_once():
     ],
     ids=["tandem", "side_by_side"],
 )
-def test_tailgating_counts_two(frames):
+def test_two_people_close_together_count_two(frames):
     pipe, _, _ = run(frames)
     assert pipe.counter.totals == {"in": 0, "out": 2}
 

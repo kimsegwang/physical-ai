@@ -25,7 +25,7 @@ from subway_edge.publisher import StdoutPublisher  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="지하철 개찰구 엣지 전처리·카운팅")
+    p = argparse.ArgumentParser(description="지하철 출구·환승 통로 엣지 전처리·카운팅")
     p.add_argument("--source", required=True, help="영상 파일 경로, 카메라 번호, RTSP 주소")
     p.add_argument("--config", help="설정 JSON (기본값 위에 덮어씀)")
     p.add_argument("--weather", choices=WEATHER_CONDITIONS, default="clear")
