@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>개찰구 엣지 하드웨어 관계도</title>
+<title>출구 엣지 하드웨어 관계도</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* 레이아웃: 한 줄 머리말 → 범례 → 가로 흐름 다이어그램 → 연결표. 선 색 = 전원/영상/인원 수 세 가지 흐름 */
+/* 레이아웃: 한 줄 머리말 → 범례 → 가로 흐름 다이어그램(왼쪽 출구 쪽 / 오른쪽 기계실) → 연결표. 선 색 = 전원/영상/인원 수 */
 :root {
   --bg: #f4f6f8;
   --surface: #ffffff;
   --fg: #1b2129;
   --muted: #5b6673;
   --line: #c9d1da;
+  --zone: #eaeef2;
   --power: #b26a00;
   --video: #2a64a8;
   --count: #1f8455;
@@ -22,30 +23,33 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12161b; --surface: #1b2128; --fg: #e4e9ef; --muted: #98a3b0; --line: #36404b;
+    --bg: #12161b; --surface: #1b2128; --fg: #e4e9ef; --muted: #98a3b0; --line: #36404b; --zone: #171c22;
     --power: #e8a548; --video: #6ea8ec; --count: #58c48d; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12161b; --surface: #1b2128; --fg: #e4e9ef; --muted: #98a3b0; --line: #36404b;
+  --bg: #12161b; --surface: #1b2128; --fg: #e4e9ef; --muted: #98a3b0; --line: #36404b; --zone: #171c22;
   --power: #e8a548; --video: #6ea8ec; --count: #58c48d; color-scheme: dark;
 }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
-.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 36px 56px; display: grid; gap: 28px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 36px 56px; display: grid; gap: 28px; }
 header { display: grid; gap: 6px; }
 .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 h1 { margin: 0; font-size: clamp(24px, 3.4vw, 32px); line-height: 1.25; text-wrap: balance; }
-.lede { margin: 0; color: var(--muted); max-width: 65ch; }
+.lede { margin: 0; color: var(--muted); max-width: 68ch; }
 .legend { display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 13px; }
 .legend span { display: inline-flex; align-items: center; gap: 8px; }
 .legend i { display: inline-block; width: 28px; height: 0; border-top: 3px solid; }
 .legend .p { border-color: var(--power); } .legend .v { border-color: var(--video); } .legend .c { border-color: var(--count); }
+.legend .f { border-top: 6px double var(--video); height: 0; }
 .legend .s { border-top: 2px dashed var(--muted); }
 figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
 .scroll { overflow-x: auto; }
-svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--fg); font-family: var(--font-body); }
-figcaption { margin-top: 12px; font-size: 13.5px; color: var(--muted); max-width: 80ch; }
+svg { display: block; width: 100%; min-width: 880px; height: auto; color: var(--fg); font-family: var(--font-body); }
+figcaption { margin-top: 12px; font-size: 13.5px; color: var(--muted); max-width: 85ch; }
 /* SVG 요소 스타일 */
+.zone { fill: var(--zone); stroke: none; }
+.zone-t { fill: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
 .box { fill: var(--surface); stroke: var(--fg); stroke-width: 1.4; }
 .stack { fill: var(--surface); stroke: var(--muted); stroke-width: 1; }
 .case { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 6 5; }
@@ -56,6 +60,8 @@ figcaption { margin-top: 12px; font-size: 13.5px; color: var(--muted); max-width
 .cap { fill: var(--muted); font-size: 12px; }
 .w-power { stroke: var(--power); stroke-width: 2.4; fill: none; }
 .w-video { stroke: var(--video); stroke-width: 2.4; fill: none; }
+.w-fiber-out { stroke: var(--video); stroke-width: 6; fill: none; }
+.w-fiber-in { stroke: var(--surface); stroke-width: 2; fill: none; }
 .w-count { stroke: var(--count); stroke-width: 2.6; fill: none; }
 .w-bus { stroke: var(--fg); stroke-width: 1.4; fill: none; }
 .w-sig { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
@@ -63,34 +69,34 @@ figcaption { margin-top: 12px; font-size: 13.5px; color: var(--muted); max-width
 /* 연결표 */
 h2 { margin: 0 0 10px; font-size: 18px; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 14px; }
 th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: 12px; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
 tr:last-child td { border-bottom: 0; }
 td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
-.note { font-size: 13.5px; color: var(--muted); margin: 0; max-width: 75ch; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--power); }
+.note { font-size: 13.5px; color: var(--muted); margin: 0; max-width: 78ch; }
 </style>
 </head>
 <body>
-
 <div class="wrap">
   <header>
-    <div class="eyebrow">FlowSight · 역 1곳 기준 · 카메라 10대 + 엣지 박스 1대</div>
-    <h1>개찰구 엣지 하드웨어 관계도</h1>
-    <p class="lede">어떤 부품이 어디서 전원을 받고, 영상과 인원 수가 어느 선을 타고 흐르는지 한 장으로 정리했습니다. 영상은 엣지 박스에서 끝나고, 박스 밖으로는 인원 수만 나갑니다.</p>
+    <div class="eyebrow">FlowSight · 역 1곳 기준 · 출구·환승 통로 카메라 10대 + 엣지 박스 1대</div>
+    <h1>출구 엣지 하드웨어 관계도</h1>
+    <p class="lede">카메라는 출구마다 흩어져 있고 AI 박스는 기계실 한곳에 있습니다. 가까운 출구는 랜선으로 바로 잇고, 100m가 넘는 출구는 근처에 작은 스위치를 두고 광케이블로 잇습니다. 영상은 AI 박스에서 끝나고, 밖으로는 인원 수만 나갑니다.</p>
   </header>
 
   <div class="legend" aria-label="범례">
     <span><i class="p"></i>전원</span>
-    <span><i class="v"></i>영상 (RTSP)</span>
+    <span><i class="v"></i>영상 (랜선)</span>
+    <span><i class="f"></i>영상 (광케이블)</span>
     <span><i class="c"></i>인원 수 (MQTT)</span>
     <span><i class="s"></i>제어 신호</span>
   </div>
 
   <figure>
     <div class="scroll">
-    <svg viewBox="0 0 1040 600" role="img" aria-label="IP 카메라 10대는 PoE 스위치에서 전원을 받고 영상을 보낸다. 스위치는 영상을 Jetson 엣지 박스로 넘기고, 박스는 인원 수만 LTE 라우터를 거쳐 AWS IoT Core로 보낸다. 콘센트에서 UPS를 거쳐 스위치, 19V 어댑터, 12V 어댑터로 전원이 들어간다.">
+    <svg viewBox="0 0 1160 640" role="img" aria-label="가까운 출구 카메라 6대는 랜선으로 기계실의 메인 PoE 스위치에 바로 연결되고, 100m 넘게 떨어진 출구 카메라 4대는 출구 쪽 PoE 스위치에 모인 뒤 광케이블로 메인 스위치에 연결된다. 메인 스위치는 영상을 Jetson으로 넘기고, Jetson은 인원 수만 LTE 라우터를 거쳐 AWS IoT Core로 보낸다. 기계실 전원은 UPS를 거쳐 메인 스위치와 어댑터로, 출구 쪽 스위치는 출구 근처 콘센트에서 전원을 받는다.">
       <defs>
         <marker id="a-power" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-power"/></marker>
         <marker id="a-video" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-video"/></marker>
@@ -98,97 +104,130 @@ td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; whit
         <marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-muted"/></marker>
       </defs>
 
-      <!-- 클라우드 -->
-      <rect class="box" x="840" y="40" width="150" height="64" rx="32"/>
-      <text class="t" x="915" y="68">AWS IoT Core</text>
-      <text class="st" x="915" y="88">클라우드 (역사 밖)</text>
+      <!-- 구역: 출구 쪽 / 기계실 -->
+      <rect class="zone" x="16" y="104" width="424" height="524" rx="10"/>
+      <text class="zone-t" x="30" y="126">출구 쪽 · 역사 곳곳</text>
+      <rect class="zone" x="476" y="104" width="668" height="524" rx="10"/>
+      <text class="zone-t" x="490" y="126">기계실 · AI 박스 자리</text>
 
-      <!-- 카메라 ×10 -->
-      <rect class="stack" x="52" y="169" width="150" height="90" rx="6"/>
-      <rect class="stack" x="46" y="175" width="150" height="90" rx="6"/>
-      <rect class="box" x="40" y="181" width="150" height="90" rx="6"/>
-      <text class="t" x="115" y="216">IP 카메라 ×10</text>
-      <text class="st" x="115" y="236">개찰구 촬영</text>
-      <text class="st mono" x="115" y="255">대당 4~7W</text>
+      <!-- 클라우드 (역사 밖) -->
+      <rect class="box" x="1010" y="20" width="140" height="60" rx="30"/>
+      <text class="t" x="1080" y="46">AWS IoT Core</text>
+      <text class="st" x="1080" y="65">클라우드 (역사 밖)</text>
 
-      <!-- 카메라 ↔ 스위치: 랜선 1가닥에 전원+영상 -->
-      <text class="cap" x="240" y="160" text-anchor="middle">랜선 1가닥 × 10회선</text>
-      <line class="w-power" x1="290" y1="209" x2="192" y2="209" marker-end="url(#a-power)"/>
-      <text class="lbl f-power" x="240" y="200">PoE 48V</text>
-      <line class="w-video" x1="190" y1="247" x2="288" y2="247" marker-end="url(#a-video)"/>
-      <text class="lbl f-video" x="240" y="266">H.265 영상</text>
+      <!-- 가까운 출구 카메라 → 메인 스위치 (랜선) -->
+      <rect class="stack" x="52" y="138" width="150" height="80" rx="6"/>
+      <rect class="stack" x="46" y="144" width="150" height="80" rx="6"/>
+      <rect class="box" x="40" y="150" width="150" height="80" rx="6"/>
+      <text class="t" x="115" y="182">카메라 ×6</text>
+      <text class="st" x="115" y="201">가까운 출구·환승 통로</text>
+      <text class="st mono" x="115" y="218">실내형</text>
 
-      <!-- PoE 스위치 -->
-      <rect class="box" x="290" y="181" width="170" height="90" rx="6"/>
-      <text class="t" x="375" y="213">PoE 스위치</text>
-      <text class="st" x="375" y="233">16포트 · 802.3af/at</text>
-      <text class="st mono" x="375" y="252">PoE 120W↑</text>
+      <text class="cap" x="345" y="148" text-anchor="middle">랜선 · 100m 이내</text>
+      <line class="w-power" x1="500" y1="172" x2="192" y2="172" marker-end="url(#a-power)"/>
+      <text class="lbl f-power" x="300" y="165">PoE 48V</text>
+      <line class="w-video" x1="190" y1="210" x2="498" y2="210" marker-end="url(#a-video)"/>
+      <text class="lbl f-video" x="300" y="228">영상 ×6</text>
 
-      <!-- 스위치 → Jetson -->
-      <line class="w-video" x1="460" y1="226" x2="548" y2="226" marker-end="url(#a-video)"/>
-      <text class="lbl f-video" x="497" y="216">RTSP ×10</text>
-      <text class="st mono" x="497" y="246">20~40Mbps</text>
+      <!-- 메인 PoE 스위치 -->
+      <rect class="box" x="500" y="150" width="170" height="80" rx="6"/>
+      <text class="t" x="585" y="180">메인 PoE 스위치</text>
+      <text class="st" x="585" y="199">16포트 · SFP</text>
+      <text class="st mono" x="585" y="216">PoE 120W↑</text>
+
+      <!-- 먼 출구 카메라 → 출구 쪽 스위치 -->
+      <rect class="stack" x="52" y="348" width="150" height="80" rx="6"/>
+      <rect class="stack" x="46" y="354" width="150" height="80" rx="6"/>
+      <rect class="box" x="40" y="360" width="150" height="80" rx="6"/>
+      <text class="t" x="115" y="392">카메라 ×4</text>
+      <text class="st" x="115" y="411">먼 출구 (지상 쪽)</text>
+      <text class="st mono" x="115" y="428">IP66 · WDR</text>
+
+      <line class="w-power" x1="260" y1="382" x2="192" y2="382" marker-end="url(#a-power)"/>
+      <text class="lbl f-power" x="225" y="374">PoE</text>
+      <line class="w-video" x1="190" y1="420" x2="258" y2="420" marker-end="url(#a-video)"/>
+      <text class="lbl f-video" x="225" y="438">영상</text>
+
+      <rect class="box" x="260" y="360" width="160" height="80" rx="6"/>
+      <text class="t" x="340" y="392">출구 쪽 PoE 스위치</text>
+      <text class="st" x="340" y="411">4~8포트 · SFP</text>
+      <text class="st mono" x="340" y="428">5~10W</text>
+
+      <!-- 광케이블: 출구 쪽 스위치 → 메인 스위치 -->
+      <path class="w-fiber-out" d="M420 400 H560 V240"/>
+      <path class="w-fiber-in" d="M420 400 H560 V240"/>
+      <polygon class="f-video" points="560,231 553,243 567,243"/>
+      <text class="lbl f-video" x="470" y="390" text-anchor="start">영상 ×4</text>
+      <text class="cap" x="452" y="424" text-anchor="start">광케이블 · 100m 초과</text>
+
+      <!-- 출구 쪽 전원 -->
+      <rect class="box" x="260" y="520" width="160" height="50" rx="6"/>
+      <text class="t" x="340" y="542" style="font-size:13px">출구 쪽 콘센트</text>
+      <text class="st" x="340" y="560">+ 소형 UPS (선택)</text>
+      <line class="w-power" x1="340" y1="520" x2="340" y2="442" marker-end="url(#a-power)"/>
+      <text class="lbl f-power" x="348" y="486" text-anchor="start">AC</text>
+
+      <!-- 메인 스위치 → Jetson -->
+      <line class="w-video" x1="670" y1="190" x2="748" y2="190" marker-end="url(#a-video)"/>
+      <text class="lbl f-video" x="709" y="180">RTSP ×10</text>
 
       <!-- 엣지 AI 박스 (방열 케이스) -->
-      <rect class="case" x="520" y="134" width="280" height="256" rx="10"/>
-      <text class="cap" x="532" y="154">엣지 AI 박스 · 방열 케이스</text>
-      <rect class="box" x="550" y="176" width="220" height="100" rx="6"/>
-      <text class="t" x="660" y="204">Jetson Orin Nano 8GB</text>
-      <text class="st" x="660" y="225">NVDEC → YOLO(TensorRT) → 카운팅</text>
-      <text class="st mono" x="660" y="246">DC 19V · 25W 모드</text>
-      <text class="st" x="660" y="264" style="font-size:11px">영상은 여기서 끝남</text>
+      <rect class="case" x="730" y="138" width="250" height="194" rx="10"/>
+      <text class="cap" x="742" y="156">엣지 AI 박스 · 방열 케이스</text>
+      <rect class="box" x="750" y="166" width="210" height="80" rx="6"/>
+      <text class="t" x="855" y="193">Jetson Orin Nano 8GB</text>
+      <text class="st" x="855" y="212">NVDEC → YOLO → 출구별 카운팅</text>
+      <text class="st mono" x="855" y="230">DC 19V · 25W 모드</text>
 
-      <rect class="box" x="550" y="312" width="110" height="56" rx="6"/>
-      <text class="t" x="605" y="336">NVMe SSD</text>
-      <text class="st" x="605" y="355">OS·모델만 저장</text>
-      <line class="w-bus" x1="605" y1="312" x2="605" y2="276"/>
-      <text class="cap mono" x="612" y="298">PCIe</text>
+      <rect class="box" x="750" y="272" width="90" height="48" rx="6"/>
+      <text class="t" x="795" y="293" style="font-size:13px">NVMe SSD</text>
+      <text class="st" x="795" y="311">OS·모델만</text>
+      <line class="w-bus" x1="795" y1="272" x2="795" y2="246"/>
+      <text class="cap mono" x="801" y="263">PCIe</text>
 
       <!-- Jetson → 라우터 → 클라우드 -->
-      <line class="w-count" x1="770" y1="226" x2="838" y2="226" marker-end="url(#a-count)"/>
-      <text class="lbl f-count" x="805" y="216">인원 수</text>
-      <text class="st mono" x="805" y="246">이더넷</text>
+      <line class="w-count" x1="960" y1="206" x2="1008" y2="206" marker-end="url(#a-count)"/>
+      <text class="lbl f-count" x="985" y="196" style="font-size:11px">인원 수</text>
 
-      <rect class="box" x="840" y="181" width="150" height="90" rx="6"/>
-      <text class="t" x="915" y="213">LTE 라우터</text>
-      <text class="st" x="915" y="233">또는 역사 유선망</text>
-      <text class="st mono" x="915" y="252">DC 12V · ~12W</text>
+      <rect class="box" x="1010" y="166" width="140" height="80" rx="6"/>
+      <text class="t" x="1080" y="196">LTE 라우터</text>
+      <text class="st" x="1080" y="215">또는 역사 유선망</text>
+      <text class="st mono" x="1080" y="232">DC 12V</text>
 
-      <line class="w-count" x1="915" y1="181" x2="915" y2="106" marker-end="url(#a-count)"/>
-      <text class="lbl f-count" x="925" y="140" text-anchor="start">MQTT · TLS 8883</text>
-      <text class="cap mono" x="925" y="158">1분마다 수백 B</text>
+      <line class="w-count" x1="1080" y1="166" x2="1080" y2="82" marker-end="url(#a-count)"/>
+      <text class="lbl f-count" x="1072" y="118" text-anchor="end">MQTT · TLS 8883</text>
+      <text class="cap mono" x="1072" y="135" text-anchor="end">숫자만</text>
 
-      <!-- 전원 계통 -->
-      <rect class="box" x="40" y="490" width="150" height="50" rx="6"/>
-      <text class="t" x="115" y="520">AC 220V 콘센트</text>
-      <line class="w-power" x1="190" y1="515" x2="288" y2="515" marker-end="url(#a-power)"/>
+      <!-- 기계실 전원 -->
+      <rect class="box" x="500" y="470" width="170" height="50" rx="6"/>
+      <text class="t" x="585" y="492">UPS (선택)</text>
+      <text class="st mono" x="585" y="510">200VA↑ · 정전 대비</text>
+      <rect class="box" x="500" y="568" width="170" height="44" rx="6"/>
+      <text class="t" x="585" y="595" style="font-size:13px">기계실 콘센트 AC 220V</text>
+      <line class="w-power" x1="585" y1="568" x2="585" y2="522" marker-end="url(#a-power)"/>
 
-      <rect class="box" x="290" y="490" width="170" height="50" rx="6"/>
-      <text class="t" x="375" y="512">UPS (선택)</text>
-      <text class="st mono" x="375" y="530">200VA↑ · 정전 대비</text>
+      <line class="w-power" x1="625" y1="470" x2="625" y2="232" marker-end="url(#a-power)"/>
+      <text class="lbl f-power" x="633" y="330" text-anchor="start">AC</text>
 
-      <line class="w-power" x1="375" y1="490" x2="375" y2="273" marker-end="url(#a-power)"/>
-      <text class="lbl f-power" x="383" y="390" text-anchor="start">AC</text>
+      <path class="w-power" d="M670 490 H1080 V418" marker-end="url(#a-power)"/>
+      <line class="w-power" x1="855" y1="490" x2="855" y2="420"/>
+      <polygon class="f-power" points="855,416 850.5,425 859.5,425"/>
+      <text class="lbl f-power" x="760" y="482">AC</text>
 
-      <path class="w-power" d="M460 515 H915 V462" marker-end="url(#a-power)"/>
-      <line class="w-power" x1="690" y1="515" x2="690" y2="462"/>
-      <polygon class="f-power" points="690,460 685.5,469 694.5,469"/>
-      <text class="lbl f-power" x="575" y="507">AC</text>
+      <rect class="box" x="795" y="380" width="120" height="36" rx="6"/>
+      <text class="t" x="855" y="403" style="font-size:13px">19V 어댑터</text>
+      <line class="w-power" x1="855" y1="380" x2="855" y2="248" marker-end="url(#a-power)"/>
 
-      <rect class="box" x="630" y="420" width="120" height="40" rx="6"/>
-      <text class="t" x="690" y="445" style="font-size:13px">19V 어댑터</text>
-      <line class="w-power" x1="690" y1="420" x2="690" y2="278" marker-end="url(#a-power)"/>
-
-      <rect class="box" x="855" y="420" width="120" height="40" rx="6"/>
-      <text class="t" x="915" y="445" style="font-size:13px">12V 어댑터</text>
-      <line class="w-power" x1="915" y1="420" x2="915" y2="273" marker-end="url(#a-power)"/>
+      <rect class="box" x="1020" y="380" width="120" height="36" rx="6"/>
+      <text class="t" x="1080" y="403" style="font-size:13px">12V 어댑터</text>
+      <line class="w-power" x1="1080" y1="380" x2="1080" y2="248" marker-end="url(#a-power)"/>
 
       <!-- UPS → Jetson 종료 신호 -->
-      <path class="w-sig" d="M375 540 V575 H755 V278" marker-end="url(#a-muted)"/>
-      <text class="cap" x="565" y="568" text-anchor="middle">정전 시 종료 신호 (USB)</text>
+      <path class="w-sig" d="M670 508 H940 V248" marker-end="url(#a-muted)"/>
+      <text class="cap" x="805" y="528" text-anchor="middle">정전 시 종료 신호 (USB)</text>
     </svg>
     </div>
-    <figcaption>카메라는 PoE 스위치에서 전원을 받고, 같은 랜선으로 영상을 보냅니다. 파란 선(영상)은 Jetson에서 끝나고, 그 오른쪽으로는 초록 선(인원 수)만 이어집니다. 전원은 모두 콘센트 1~2구에서 UPS를 거쳐 들어가며, 최대 합계는 약 120W입니다.</figcaption>
+    <figcaption>카메라 수(6대 / 4대)는 예시입니다. 어느 출구가 100m를 넘는지는 역 도면과 현장 조사(체크리스트 8-5)로 정합니다. 파란 선(영상)은 랜선이든 광케이블이든 Jetson에서 끝나고, 그 오른쪽으로는 초록 선(인원 수)만 이어집니다. 출구 쪽 스위치는 기계실 UPS가 아니라 출구 근처 콘센트에서 전원을 받으므로, 정전 대비가 필요하면 출구 쪽에도 소형 UPS를 둡니다.</figcaption>
   </figure>
 
   <section>
@@ -197,20 +236,21 @@ td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; whit
       <table>
         <thead><tr><th>부품</th><th>수량</th><th>전원을 받는 곳</th><th>연결 대상 · 방식</th><th>최대 전력</th></tr></thead>
         <tbody>
-          <tr><td>IP 카메라 (PoE)</td><td class="num">10</td><td><span class="dot" style="background:var(--power)"></span>PoE 스위치 (48V)</td><td>스위치 ← RTSP/ONVIF, H.264/H.265</td><td class="num">~70W</td></tr>
-          <tr><td>PoE 스위치 16포트</td><td class="num">1</td><td><span class="dot" style="background:var(--power)"></span>UPS (AC 100~240V)</td><td>카메라 10대 · Jetson · 라우터, 기가비트 이더넷</td><td class="num">~10W</td></tr>
-          <tr><td>Jetson Orin Nano 8GB</td><td class="num">1</td><td><span class="dot" style="background:var(--power)"></span>19V 어댑터 (DC 7~20V)</td><td>스위치 → 영상 수신, 라우터 → 인원 수 송신</td><td class="num">~30W</td></tr>
-          <tr><td>NVMe SSD 128GB↑</td><td class="num">1</td><td><span class="dot" style="background:var(--power)"></span>Jetson 보드 (3.3V)</td><td>Jetson M.2 슬롯, PCIe. 영상은 저장하지 않음</td><td class="num">Jetson에 포함</td></tr>
-          <tr><td>LTE 라우터</td><td class="num">1</td><td><span class="dot" style="background:var(--power)"></span>12V 어댑터</td><td>Jetson ← 이더넷, AWS IoT Core → MQTT/TLS 8883</td><td class="num">~12W</td></tr>
-          <tr><td>소형 UPS (선택)</td><td class="num">1</td><td><span class="dot" style="background:var(--power)"></span>AC 220V 콘센트</td><td>Jetson ← USB 또는 접점 신호로 종료 알림</td><td class="num">출력 200VA↑</td></tr>
+          <tr><td>IP 카메라 (PoE)</td><td class="num">10</td><td><span class="dot"></span>가까운 스위치 (PoE 48V)</td><td>스위치 ← RTSP/ONVIF, H.264/H.265. 지상 출구 쪽은 IP66 방수·WDR</td><td class="num">대당 4~7W</td></tr>
+          <tr><td>메인 PoE 스위치 16포트</td><td class="num">1</td><td><span class="dot"></span>기계실 UPS (AC)</td><td>가까운 카메라 · 출구 쪽 스위치(광) · Jetson · 라우터</td><td class="num">~10W</td></tr>
+          <tr><td>출구 쪽 PoE 스위치 4~8포트</td><td class="num">필요한 만큼</td><td><span class="dot"></span>출구 근처 콘센트 (AC)</td><td>먼 출구 카메라 · 메인 스위치(광케이블)</td><td class="num">대당 5~10W</td></tr>
+          <tr><td>광 모듈(SFP) + 광케이블</td><td class="num">구간당 모듈 2개</td><td><span class="dot"></span>양쪽 스위치</td><td>출구 쪽 스위치 ↔ 메인 스위치. 랜선 100m 한계를 넘는 구간</td><td class="num">1W 내외</td></tr>
+          <tr><td>Jetson Orin Nano 8GB</td><td class="num">1</td><td><span class="dot"></span>19V 어댑터 (DC 7~20V)</td><td>메인 스위치 → 영상 수신, 라우터 → 인원 수 송신</td><td class="num">~30W</td></tr>
+          <tr><td>NVMe SSD 128GB↑</td><td class="num">1</td><td><span class="dot"></span>Jetson 보드 (3.3V)</td><td>Jetson M.2 슬롯, PCIe. 영상은 저장하지 않음</td><td class="num">Jetson에 포함</td></tr>
+          <tr><td>LTE 라우터</td><td class="num">1</td><td><span class="dot"></span>12V 어댑터</td><td>Jetson ← 이더넷, AWS IoT Core → MQTT/TLS 8883</td><td class="num">~12W</td></tr>
+          <tr><td>소형 UPS (선택)</td><td class="num">1 + 출구 쪽</td><td><span class="dot"></span>AC 220V 콘센트</td><td>기계실 UPS는 Jetson에 USB로 종료 알림</td><td class="num">출력 200VA↑</td></tr>
           <tr><td>방열 케이스</td><td class="num">1</td><td>—</td><td>Jetson과 SSD를 감싸 먼지·열 차단</td><td class="num">—</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <p class="note">수치는 report/hardware.md의 사양 초안 기준이며 부품은 아직 구매·실측하지 않았습니다. 역사 유선망을 쓸 수 있으면 LTE 라우터와 12V 어댑터가 빠지고 Jetson이 유선망에 바로 연결됩니다. 카메라가 USB·CSI 방식으로 바뀌면 PoE 스위치 구간이 달라집니다.</p>
+  <p class="note">수치는 report/hardware.md의 사양 초안 기준이며 부품은 아직 구매·실측하지 않았습니다. 기계실 쪽 최대 전력은 약 120W이고, 출구 쪽 스위치마다 5~10W가 더해집니다. 역사 유선망을 쓸 수 있으면 LTE 라우터와 12V 어댑터가 빠집니다. 배선 공사비는 PRD의 초기 투자 9억 원에 포함되지 않았습니다.</p>
 </div>
-
 </body>
 </html>
