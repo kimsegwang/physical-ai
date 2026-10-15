@@ -6,18 +6,23 @@
 -- - 섹터를 지정하지 않으면 모든 섹터 테이블에서 찾아 가까운 순으로 합친다 (지금 챗봇 동작).
 -- - 적재·조회는 지금처럼 document_chunks 이름 하나로 한다. 어느 섹터 테이블에 들어갈지는 DB가 category로 정한다.
 --
--- 기존 임베딩은 그대로 옮기므로 다시 임베딩하지 않는다. 한 트랜잭션으로 실행되므로 중간에 실패하면 전부 되돌아간다.
+-- 기존 임베딩은 그대로 옮기므로 다시 임베딩하지 않는다.
+-- 기존 테이블은 이름만 바꿔 두었다가, 새 테이블로 옮기고 개수를 확인한 뒤 마지막에 지운다.
+-- 전체를 한 트랜잭션으로 묶어 중간에 실패하면 전부 되돌아간다.
 
--- 1. 기존 청크를 임시로 옮겨 두고, 기존 테이블에 기대는 뷰·함수를 지운다
-create temp table _old_chunks on commit drop as
-select c.id, d.category, c.document_id, c.chunk_index, c.heading, c.content, c.embedding, c.created_at
-from public.document_chunks c
-join public.documents d on d.id = c.document_id;
+begin;
 
+-- 1. 기존 테이블에 기대는 뷰·함수를 지우고, 기존 테이블과 인덱스·시퀀스 이름을 비켜 둔다
 drop view public.v_document_chunks;
 drop view public.v_category_summary;
 drop function public.match_document_chunks(extensions.vector, int, float, text);
-drop table public.document_chunks;
+
+alter table public.document_chunks rename to document_chunks_old;
+alter index public.document_chunks_pkey rename to document_chunks_old_pkey;
+alter index public.document_chunks_embedding_idx rename to document_chunks_old_embedding_idx;
+alter index public.document_chunks_document_id_chunk_index_key rename to document_chunks_old_document_id_chunk_index_key;
+-- id 자동 번호(identity)를 떼어 시퀀스 이름 document_chunks_id_seq를 비운다. 값은 그대로 남는다.
+alter table public.document_chunks_old alter column id drop identity;
 
 -- 2. 청크의 섹터가 문서의 섹터와 항상 같도록 (문서 id, 섹터) 쌍으로 연결한다.
 --    문서의 섹터를 바꾸면 청크도 따라 바뀌고, 해당 섹터 테이블로 자동으로 옮겨진다.
@@ -60,18 +65,22 @@ create index document_chunks_document_id_idx on public.document_chunks (document
 
 -- 4. 기존 청크를 옮기고, 개수가 맞는지 확인한다
 insert into public.document_chunks (id, category, document_id, chunk_index, heading, content, embedding, created_at)
-select id, category, document_id, chunk_index, heading, content, embedding, created_at
-from _old_chunks;
+select o.id, d.category, o.document_id, o.chunk_index, o.heading, o.content, o.embedding, o.created_at
+from public.document_chunks_old o
+join public.documents d on d.id = o.document_id;
 
 select setval('public.document_chunks_id_seq', coalesce((select max(id) from public.document_chunks), 0) + 1, false);
 
 do $check$
 begin
-  if (select count(*) from public.document_chunks) <> (select count(*) from _old_chunks) then
+  if (select count(*) from public.document_chunks) <> (select count(*) from public.document_chunks_old) then
     raise exception '청크 개수가 맞지 않습니다. 마이그레이션을 되돌립니다';
   end if;
 end
 $check$;
+
+-- 개수가 맞으면 기존 테이블을 지운다
+drop table public.document_chunks_old;
 
 -- 5. 공개 키로는 부모·섹터 테이블 모두 읽지 못하게 한다 (적재 스크립트와 Edge Function만 secret 키로 접근)
 alter table public.document_chunks enable row level security;
@@ -179,3 +188,5 @@ $fn$;
 
 revoke execute on function public.match_document_chunks(extensions.vector, int, float, text)
   from public, anon, authenticated;
+
+commit;
