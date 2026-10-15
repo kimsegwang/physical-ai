@@ -44,6 +44,7 @@ SOURCES = [
     "report/vision_models.md",
     "report/checklist.md",
     "report/hardware.md",
+    "report/inference_engine.md",
     "index.html",
     "docs.html",
     "hardware.html",
@@ -73,6 +74,7 @@ CATEGORIES = {
     "report/vision_models.md": "model",
     "docs.html": "model",
     "report/hardware.md": "hardware",
+    "report/inference_engine.md": "hardware",  # Jetson에서 YOLO를 돌릴 엔진. 하드웨어 페이지에 요약이 있다
     "hardware.html": "hardware",
     "report/checklist.md": "field",
     "index.html": "website",
