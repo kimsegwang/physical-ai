@@ -58,6 +58,7 @@
 - **하드웨어 디코더(NVDEC)** 가 있어 카메라 여러 대의 H.264/H.265 영상을 CPU 부담 없이 풀 수 있다. 동시 디코딩 가능한 채널 수는 데이터시트로 확인한다.
 - 하드웨어 인코더는 없지만, 영상을 다시 압축해 저장·전송하지 않으므로 문제없다.
 - 모델은 TensorRT 엔진으로 변환해 쓴다. 엔진은 Jetson에서 직접 만든다. (`report/model_plan.md` 참고)
+- 추론 엔진은 ONNX Runtime(TensorRT·CUDA 실행 공급자)을 쓴다. 후보 비교와 TensorRT 직접 실행과의 관계는 `report/inference_engine.md` 참고.
 
 ### 3.2 IP 카메라 (PoE)
 

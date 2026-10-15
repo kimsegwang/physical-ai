@@ -58,6 +58,10 @@
 <span class="material-symbols-outlined text-[18px]">list_alt</span>
 <span>부품 목록</span>
 </a>
+<a class="inline-flex items-center justify-center gap-space-xs bg-surface/10 text-surface px-space-lg py-space-md rounded-full font-headline-sm text-headline-sm font-medium hover:bg-surface/20 transition-all backdrop-blur-sm" href="#runtime">
+<span class="material-symbols-outlined text-[18px]">memory</span>
+<span>추론 엔진</span>
+</a>
 </div>
 </div>
 <!-- 오른쪽: 구성 요약 카드 -->
@@ -499,8 +503,143 @@
 </div>
 </section>
 
+<!-- 추론 엔진 -->
+<section class="w-full bg-surface-container-low py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop" id="runtime">
+<div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
+<div class="flex flex-col gap-space-xs max-w-3xl">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Inference Engine</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg font-bold tracking-tight">추론 엔진은 ONNX Runtime을 씁니다</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">후보는 ONNX Runtime · NCNN · OpenVINO · TFLite(LiteRT) 네 가지입니다. Jetson 성능은 대부분 GPU에서 나오는데, <strong class="text-on-surface">네 엔진 중 Jetson의 GPU를 쓸 수 있는 것은 ONNX Runtime뿐</strong>입니다.</p>
+</div>
+
+<!-- 선택 요약 -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<div class="lg:col-span-5 bg-primary-container text-surface rounded-3xl p-space-lg md:p-space-xl shadow-xl flex flex-col gap-space-md">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-headline-md text-headline-md font-bold">ONNX Runtime</span>
+<span class="font-label-caps text-label-caps px-2 py-1 rounded-full bg-[#10B981] text-surface font-bold">채택</span>
+</div>
+<span class="font-body-md text-body-md text-surface-variant">Jetson에서는 실행 공급자를 아래 순서로 지정합니다. 되는 연산은 앞쪽에서, 안 되는 연산은 다음으로 넘겨 전체가 멈추지 않습니다.</span>
+<ol class="flex flex-col gap-space-xs font-body-md text-body-md">
+<li class="flex items-center gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-surface text-primary flex items-center justify-center text-xs font-bold">1</span><span><strong>TensorRT</strong> <span class="text-surface-variant">— Tensor 코어, FP16·INT8</span></span></li>
+<li class="flex items-center gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-surface/20 flex items-center justify-center text-xs font-bold">2</span><span><strong>CUDA</strong> <span class="text-surface-variant">— TensorRT가 못 하는 연산</span></span></li>
+<li class="flex items-center gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-surface/20 flex items-center justify-center text-xs font-bold">3</span><span><strong>CPU</strong> <span class="text-surface-variant">— 마지막 대체 (개발 PC도 이 경로)</span></span></li>
+</ol>
+<pre class="bg-surface/10 text-surface-container-high rounded-2xl p-space-md text-[12.5px] leading-5 overflow-x-auto"><code>yolo export model=models/best.pt format=onnx imgsz=640</code></pre>
+</div>
+<div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-gutter">
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<span class="material-symbols-outlined text-[28px] text-on-tertiary-container">memory</span>
+<span class="font-headline-sm text-headline-sm font-bold">GPU를 쓰는 유일한 후보</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">TensorRT 실행 공급자를 켜면 안에서 TensorRT로 추론합니다. 나머지 셋은 Jetson에서 사실상 CPU로 돕니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<span class="material-symbols-outlined text-[28px] text-on-tertiary-container">swap_horiz</span>
+<span class="font-headline-sm text-headline-sm font-bold">대안 보드의 공통 출발점</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">TensorRT·RKNN(RK3588)·HEF(Hailo) 모두 ONNX를 받아 변환합니다. 보드를 바꿔도 마지막 변환만 바뀝니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<span class="material-symbols-outlined text-[28px] text-on-tertiary-container">devices</span>
+<span class="font-headline-sm text-headline-sm font-bold">PC와 Jetson에서 같은 파일</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">CUDA가 없는 개발 PC에서도 같은 .onnx를 CPU로 돌립니다. PC에서 검증한 파일이 그대로 Jetson에 올라갑니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<span class="material-symbols-outlined text-[28px] text-on-tertiary-container">code</span>
+<span class="font-headline-sm text-headline-sm font-bold">지금 코드에 바로 연결</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">ultralytics는 .onnx를 받으면 ONNX Runtime으로 실행합니다. 설정의 model_path만 바꾸면 되고 추적·카운팅 코드는 그대로입니다.</span>
+</div>
+</div>
+</div>
+
+<!-- 비교표 -->
+<div class="bg-surface-container-lowest rounded-3xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full min-w-[900px] text-left font-body-sm text-body-sm">
+<thead class="bg-primary-container text-surface">
+<tr>
+<th class="px-space-md py-space-md font-semibold">엔진</th>
+<th class="px-space-md py-space-md font-semibold">주로 맞는 하드웨어</th>
+<th class="px-space-md py-space-md font-semibold">Jetson GPU</th>
+<th class="px-space-md py-space-md font-semibold">Jetson 공개 벤치마크</th>
+<th class="px-space-md py-space-md font-semibold">카메라 10대 × 10fps</th>
+<th class="px-space-md py-space-md font-semibold">결론</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/50 align-top">
+<tr class="bg-[#ECFDF5]">
+<td class="px-space-md py-space-md font-bold text-on-surface">ONNX Runtime<br/><span class="font-normal text-on-surface-variant">Microsoft</span></td>
+<td class="px-space-md py-space-md">범용 (실행 공급자로 가속기 연결)</td>
+<td class="px-space-md py-space-md">○ TensorRT · CUDA</td>
+<td class="px-space-md py-space-md whitespace-nowrap">15.76ms (CPU 기준)<br/><span class="text-on-surface-variant">TensorRT 경로 3.8~4.6ms 수준 기대</span></td>
+<td class="px-space-md py-space-md">○ GPU 실행 공급자 사용 시</td>
+<td class="px-space-md py-space-md font-bold text-[#065F46]">채택</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold">NCNN<br/><span class="font-normal text-on-surface-variant">Tencent</span></td>
+<td class="px-space-md py-space-md">휴대폰 · ARM CPU, Vulkan</td>
+<td class="px-space-md py-space-md">△ Vulkan만, Tensor 코어 못 씀</td>
+<td class="px-space-md py-space-md whitespace-nowrap">47.50ms (약 21fps)</td>
+<td class="px-space-md py-space-md">✕ 카메라 2대 수준</td>
+<td class="px-space-md py-space-md">라즈베리파이 단독일 때</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold">OpenVINO<br/><span class="font-normal text-on-surface-variant">Intel</span></td>
+<td class="px-space-md py-space-md">Intel CPU · 내장 GPU · NPU</td>
+<td class="px-space-md py-space-md">✕ NVIDIA 미지원</td>
+<td class="px-space-md py-space-md whitespace-nowrap">56.23ms (약 18fps)</td>
+<td class="px-space-md py-space-md">✕</td>
+<td class="px-space-md py-space-md">Intel 미니 PC일 때</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold">TFLite (LiteRT)<br/><span class="font-normal text-on-surface-variant">Google</span></td>
+<td class="px-space-md py-space-md">휴대폰 · MCU · Coral</td>
+<td class="px-space-md py-space-md">✕ 사실상 CPU</td>
+<td class="px-space-md py-space-md whitespace-nowrap">286.00ms (약 3.5fps)</td>
+<td class="px-space-md py-space-md">✕</td>
+<td class="px-space-md py-space-md text-[#991B1B]">제외</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="px-space-md py-space-sm font-body-sm text-body-sm text-on-surface-variant border-t border-outline-variant/50">벤치마크는 Ultralytics 공식 Jetson 가이드의 Orin Nano Super · YOLO26n · 640px 값(전·후처리 제외)이며 우리 영상으로 잰 값이 아닙니다. 가이드는 TensorRT 외 형식이 CPU만 쓴다고 적고 있어, ONNX 15.76ms는 GPU 가속 전 수치입니다. 초당 100프레임이면 프레임당 추론 예산은 약 10ms입니다.</p>
+</div>
+
+<!-- 주의할 점 -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-[#F59E0B]">warning</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">ultralytics는 CUDA까지만</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">ultralytics로 .onnx를 열면 CUDA → CPU만 켭니다. TensorRT 속도가 필요하면 ONNX Runtime 세션을 직접 여는 검출기를 Detector 인터페이스로 추가합니다.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-on-tertiary-container">hourglass_top</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">첫 실행은 몇 분</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">TensorRT 실행 공급자는 처음에 엔진을 만듭니다. 엔진 캐시를 켜서 models/(Git 제외)에 두고, 설치 직후 한 번 돌려 둡니다.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-on-tertiary-container">download</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">Jetson용 wheel 설치</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">PyPI의 일반 onnxruntime-gpu가 아니라 JetPack · Python · CUDA 버전에 맞는 Jetson용 wheel을 설치합니다.</span>
+</div>
+</div>
+</div>
+
+<!-- TensorRT 직접 실행과의 관계 -->
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-sm">
+<span class="font-headline-sm text-headline-sm font-bold">기존 TensorRT 계획과의 관계</span>
+<p class="font-body-md text-body-md text-on-surface-variant">ONNX Runtime + TensorRT 실행 공급자는 안에서 같은 TensorRT를 쓰면서, 지원되지 않는 연산의 대체 실행과 개발 PC와 같은 모델 파일을 더한 방식입니다. Jetson 실측에서 TensorRT 직접 실행(.engine)과 속도 차이가 작으면 ONNX Runtime으로 통일하고, 초당 100프레임을 못 맞추면 TensorRT 직접 실행을 씁니다.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">보드를 바꾸면 엔진도 바뀝니다: RK3588 → RKNN, Hailo → HailoRT, 라즈베리파이 단독 → NCNN, Intel 미니 PC → OpenVINO. 전체 내용은 저장소의 <code class="px-1 rounded bg-surface-container-low">report/inference_engine.md</code>에 있습니다.</p>
+</div>
+</div>
+</section>
+
 <!-- 확인 필요 항목 -->
-<section class="w-full bg-surface-container-low py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop">
+<section class="w-full bg-surface py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop">
 <div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
 <div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-sm">
 <span class="font-headline-sm text-headline-sm font-bold">확정 전에 확인할 것</span>
@@ -511,6 +650,7 @@
 <li>· 카메라 위치별 비·눈 노출 여부</li>
 <li>· Jetson Orin Nano의 동시 디코딩 채널 수 (데이터시트)</li>
 <li>· 후보 부품의 실제 판매 가격</li>
+<li>· ONNX Runtime(TensorRT 실행 공급자)과 TensorRT 직접 실행의 Jetson 실측 속도</li>
 </ul>
 <p class="font-body-sm text-body-sm text-on-surface-variant pt-space-xs">배선 공사비는 PRD의 초기 투자 9억 원에 포함되지 않았습니다. 전체 내용은 저장소의 <code class="px-1 rounded bg-surface-container-low">report/hardware.md</code>에 있습니다.</p>
 </div>
