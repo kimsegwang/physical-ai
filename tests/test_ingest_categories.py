@@ -29,7 +29,9 @@ def test_섹터_목록이_마이그레이션과_같다():
 def test_마이그레이션의_기존_문서_분류가_스크립트와_같다():
     sql = MIGRATION.read_text(encoding="utf-8")
     backfill = dict(re.findall(r"when '([^']+)' then '([a-z]+)'", sql))
-    assert backfill == ingest_docs.CATEGORIES
+    # 마이그레이션은 그때 있던 문서만 분류한다. 나중에 추가한 문서는 스크립트가 섹터를 넣는다.
+    assert backfill
+    assert {src: ingest_docs.CATEGORIES.get(src) for src in backfill} == backfill
 
 
 def test_섹터마다_청크_파티션_테이블이_있다():

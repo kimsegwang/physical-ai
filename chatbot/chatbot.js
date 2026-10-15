@@ -40,6 +40,7 @@
     "report/vision_models.md": "비전 모델 조사",
     "report/checklist.md": "현장 조사 가이드",
     "report/hardware.md": "하드웨어",
+    "report/inference_engine.md": "추론 엔진",
     "hardware.html": "하드웨어 페이지",
   };
 
