@@ -176,7 +176,10 @@ class Supabase:
         return rows[0]["id"]
 
     def set_category(self, document_id: int, category: str) -> None:
-        """내용은 그대로이고 섹터만 바뀐 경우 (다시 임베딩하지 않는다)."""
+        """내용은 그대로이고 섹터만 바뀐 경우 (다시 임베딩하지 않는다).
+
+        청크의 섹터는 DB 외래 키(on update cascade)로 함께 바뀌고 해당 섹터 테이블로 옮겨진다.
+        """
         http_json(
             "PATCH",
             f"{self.rest}/documents?id=eq.{document_id}",
@@ -185,10 +188,11 @@ class Supabase:
         )
 
     def upsert_chunks(self, rows: list[dict]) -> None:
+        # document_chunks는 섹터별 파티션 테이블이라 고유 키에 category가 들어간다
         for i in range(0, len(rows), 100):
             http_json(
                 "POST",
-                f"{self.rest}/document_chunks?on_conflict=document_id,chunk_index",
+                f"{self.rest}/document_chunks?on_conflict=category,document_id,chunk_index",
                 self._h("resolution=merge-duplicates,return=minimal"),
                 rows[i : i + 100],
             )
@@ -265,6 +269,7 @@ def main() -> int:
         vectors = gemini.embed([embed_text(title, c) for c in chunks])
         rows = [
             {
+                "category": category,  # 들어갈 섹터 테이블을 정한다 (문서의 섹터와 같아야 함)
                 "document_id": doc_id,
                 "chunk_index": i,
                 "heading": c.heading,
