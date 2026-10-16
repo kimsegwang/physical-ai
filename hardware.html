@@ -46,7 +46,7 @@
 <span class="text-surface-container-high">엣지 박스 1대로 약 120W</span>
           </h1>
 <p class="font-body-lg text-body-lg text-surface-variant max-w-xl mt-space-sm font-normal">
-            출구·환승 통로에 흩어진 PoE 카메라가 영상을 기계실의 Jetson으로 보내고, Jetson은 출구별 인원 수만 클라우드로 보냅니다. 부품마다 전압·전력·통신 방식과 서로 어떻게 연결되는지 정리했습니다.
+            출구·환승 통로에 흩어진 PoE 카메라가 영상을 기계실의 Jetson으로 보내고, Jetson은 출구별 인원 수만 클라우드로 보냅니다. 부품마다 전압·전력·통신 방식과 서로 어떻게 연결되는지, SBC·MCU를 왜 그렇게 골랐는지, 박스 안을 컨테이너로 어떻게 나누는지 정리했습니다.
           </p>
 </div>
 <div class="flex flex-wrap items-center gap-space-md pt-space-xs">
@@ -58,9 +58,17 @@
 <span class="material-symbols-outlined text-[18px]">list_alt</span>
 <span>부품 목록</span>
 </a>
+<a class="inline-flex items-center justify-center gap-space-xs bg-surface/10 text-surface px-space-lg py-space-md rounded-full font-headline-sm text-headline-sm font-medium hover:bg-surface/20 transition-all backdrop-blur-sm" href="#selection">
+<span class="material-symbols-outlined text-[18px]">developer_board</span>
+<span>SBC · MCU 선정</span>
+</a>
 <a class="inline-flex items-center justify-center gap-space-xs bg-surface/10 text-surface px-space-lg py-space-md rounded-full font-headline-sm text-headline-sm font-medium hover:bg-surface/20 transition-all backdrop-blur-sm" href="#runtime">
 <span class="material-symbols-outlined text-[18px]">memory</span>
 <span>추론 엔진</span>
+</a>
+<a class="inline-flex items-center justify-center gap-space-xs bg-surface/10 text-surface px-space-lg py-space-md rounded-full font-headline-sm text-headline-sm font-medium hover:bg-surface/20 transition-all backdrop-blur-sm" href="#containers">
+<span class="material-symbols-outlined text-[18px]">deployed_code</span>
+<span>컨테이너 구성</span>
 </a>
 </div>
 </div>
@@ -360,6 +368,14 @@
 <td class="px-space-md py-space-md">USB로 Jetson에 종료 알림</td>
 </tr>
 <tr>
+<td class="px-space-md py-space-md font-semibold">MCU + 릴레이 · 강압 모듈 <span class="font-normal text-on-surface-variant">(선택)</span><br/><span class="font-normal text-on-surface-variant">Raspberry Pi Pico</span></td>
+<td class="px-space-md py-space-md">각 1</td>
+<td class="px-space-md py-space-md">Jetson이 멈추면 리셋·전원 재투입 (<a class="underline" href="#watchdog">워치독</a>)</td>
+<td class="px-space-md py-space-md">5V (릴레이 앞 19V에서 강압)</td>
+<td class="px-space-md py-space-md whitespace-nowrap">1W 미만</td>
+<td class="px-space-md py-space-md">UART, GPIO (3.3V)</td>
+</tr>
+<tr>
 <td class="px-space-md py-space-md font-semibold">방열 케이스</td>
 <td class="px-space-md py-space-md">1</td>
 <td class="px-space-md py-space-md">Jetson과 SSD를 감싸 먼지·열 차단</td>
@@ -433,78 +449,321 @@
 </div>
 </section>
 
-<!-- 대안 보드 -->
-<section class="w-full bg-surface py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop" id="alternatives">
+<!-- SBC · MCU 선정 -->
+<section class="w-full bg-surface py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop" id="selection">
 <div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
 <div class="flex flex-col gap-space-xs max-w-3xl">
-<span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Board Alternatives</span>
-<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg font-bold tracking-tight">더 저렴한 보드가 있어도 Jetson을 유지합니다</h2>
-<p class="font-body-lg text-body-lg text-on-surface-variant">박스 한 대가 초당 100프레임을 처리해야 하고, 병목은 YOLO 추론뿐 아니라 <strong class="text-on-surface">영상 10개를 동시에 디코딩하는 것</strong>입니다.</p>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">SBC · MCU Selection</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg font-bold tracking-tight">SBC는 Jetson, MCU는 Pico로 고릅니다</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">SBC(싱글 보드 컴퓨터)는 영상 처리를 전부 맡고, MCU(마이크로컨트롤러)는 SBC가 멈췄을 때 되살리는 일만 합니다. 병목은 YOLO 추론뿐 아니라 <strong class="text-on-surface">영상 10개를 동시에 디코딩하는 것</strong>이라, 추론·디코딩·코드 호환 셋 중 하나라도 못 맞추면 탈락입니다.</p>
 </div>
+
+<!-- 선정 요약 -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<div class="bg-primary-container text-surface rounded-3xl p-space-lg md:p-space-xl shadow-xl flex flex-col gap-space-sm">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-caps text-label-caps text-surface-container-high uppercase">SBC · 영상 처리</span>
+<span class="font-label-caps text-label-caps px-2 py-1 rounded-full bg-[#10B981] text-surface font-bold">채택</span>
+</div>
+<span class="font-headline-md text-headline-md font-bold">Jetson Orin Nano 8GB</span>
+<span class="font-body-md text-body-md text-surface-variant">추론(GPU), 다채널 디코딩(NVDEC), 지금 코드·ONNX Runtime·컨테이너 구성을 모두 그대로 맞추는 유일한 후보입니다. 컨테이너에서도 <code class="px-1 rounded bg-surface/10">runtime: nvidia</code> 한 줄로 privileged 없이 GPU를 씁니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg md:p-space-xl shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">MCU · SBC 감시</span>
+<span class="font-label-caps text-label-caps px-2 py-1 rounded-full bg-surface-container text-secondary font-bold">필요할 때 추가</span>
+</div>
+<span class="font-headline-md text-headline-md font-bold">Raspberry Pi Pico (RP2040)</span>
+<span class="font-body-md text-body-md text-on-surface-variant">무선이 없어 박스 전원을 무선으로 건드릴 길이 없고, 3.3V 신호가 Jetson과 바로 맞습니다. 약 $4. 핀 배치가 같은 Pico 2(RP2350)도 그대로 쓸 수 있습니다.</span>
+</div>
+</div>
+
+<!-- SBC 비교표 -->
 <div class="bg-surface-container-lowest rounded-3xl shadow-sm overflow-hidden">
 <div class="overflow-x-auto">
-<table class="w-full min-w-[900px] text-left font-body-sm text-body-sm">
+<table class="w-full min-w-[960px] text-left font-body-sm text-body-sm">
 <thead class="bg-primary-container text-surface">
 <tr>
-<th class="px-space-md py-space-md font-semibold">후보</th>
+<th class="px-space-md py-space-md font-semibold">기준</th>
+<th class="px-space-md py-space-md font-semibold bg-[#10B981]/25">Jetson Orin Nano 8GB</th>
+<th class="px-space-md py-space-md font-semibold">Jetson Orin NX 16GB</th>
+<th class="px-space-md py-space-md font-semibold">RK3588 보드</th>
+<th class="px-space-md py-space-md font-semibold">라즈베리파이 5 + Hailo-8</th>
+<th class="px-space-md py-space-md font-semibold">라즈베리파이 5 단독</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/50 align-top">
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">추론 성능</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5]">○ GPU, TensorRT FP16 약 4.6ms</td>
+<td class="px-space-md py-space-md">◎ Orin Nano보다 높음</td>
+<td class="px-space-md py-space-md">△ NPU 6 TOPS, 해상도·fps 조절 필요할 수 있음</td>
+<td class="px-space-md py-space-md">○ 26 TOPS</td>
+<td class="px-space-md py-space-md text-[#991B1B]">✕ CPU만, 초당 수 프레임</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">다채널 디코딩</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5]">○ NVDEC</td>
+<td class="px-space-md py-space-md">○ NVDEC</td>
+<td class="px-space-md py-space-md">◎ 1080p 다채널 동시 디코딩</td>
+<td class="px-space-md py-space-md text-[#991B1B]">✕ H.265만, 다채널에 약함</td>
+<td class="px-space-md py-space-md text-[#991B1B]">✕</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">코드 · 엔진 호환</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5]">◎ ultralytics · ONNX Runtime 그대로</td>
+<td class="px-space-md py-space-md">◎ 같음</td>
+<td class="px-space-md py-space-md">△ RKNN 변환 필요</td>
+<td class="px-space-md py-space-md">△ HEF 변환 (x86 PC에서)</td>
+<td class="px-space-md py-space-md">○ 그대로지만 느림</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">컨테이너</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5]">◎ <code>runtime: nvidia</code></td>
+<td class="px-space-md py-space-md">◎ 같음</td>
+<td class="px-space-md py-space-md">△ NPU 장치를 직접 넘김</td>
+<td class="px-space-md py-space-md">△ Hailo 장치를 직접 넘김</td>
+<td class="px-space-md py-space-md">○ 가속기 없음</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">메모리 · 전력</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5]">8GB · 7~25W</td>
+<td class="px-space-md py-space-md">16GB · 10~25W 이상</td>
+<td class="px-space-md py-space-md">8~16GB · 10~20W</td>
+<td class="px-space-md py-space-md">8GB · 10~15W</td>
+<td class="px-space-md py-space-md">8GB · 5~10W</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">현장 설치형</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5]">○ 양산 모듈 + 산업용 캐리어</td>
+<td class="px-space-md py-space-md">○ 같음</td>
+<td class="px-space-md py-space-md">△ 선택지 적음</td>
+<td class="px-space-md py-space-md">△ 선택지 적음</td>
+<td class="px-space-md py-space-md">△</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">대략 가격</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5] whitespace-nowrap">$249 (개발키트)</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $600 이상</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $100~150</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $190 + 주변 부품</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $80</td>
+</tr>
+<tr class="bg-surface-container-low">
+<td class="px-space-md py-space-md font-bold whitespace-nowrap">결론</td>
+<td class="px-space-md py-space-md bg-[#ECFDF5] font-bold text-[#065F46]">채택</td>
+<td class="px-space-md py-space-md">10대 실측이 안 될 때 (코드 그대로)</td>
+<td class="px-space-md py-space-md">비용 절감 1순위 대안</td>
+<td class="px-space-md py-space-md">카메라 2~3대 역만</td>
+<td class="px-space-md py-space-md text-[#991B1B]">불가</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="px-space-md py-space-sm font-body-sm text-body-sm text-on-surface-variant border-t border-outline-variant/50">◎ 매우 적합 · ○ 적합 · △ 조건부 · ✕ 부적합. Coral USB 가속기는 4 TOPS에 YOLOv8 계열과 호환이 나빠 처음부터 제외했습니다. 라즈베리파이 5 + Hailo에 쿨러·어댑터·SSD를 더하면 약 $200 이상이라 Jetson과 몇십 달러 차이입니다. 가격은 대략값입니다.</p>
+</div>
+
+<!-- 개발키트 vs 현장 설치 -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-on-tertiary-container">science</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">개발 · 시범 운영은 개발키트</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Jetson Orin Nano Super 개발키트. 싸고 자료가 많아 카메라 10대 실측을 여기서 합니다.</span>
+</div>
+</div>
+<div class="flex items-start gap-space-md">
+<span class="w-10 h-10 shrink-0 rounded-2xl bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-on-tertiary-container">factory</span></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold">현장 설치는 양산 모듈 + 산업용 캐리어</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">개발키트는 24시간 현장용이 아닙니다. 같은 모듈을 팬리스 케이스·넓은 입력 전압·넓은 동작 온도의 캐리어 보드에 올려 소프트웨어는 그대로 씁니다. 가격은 견적으로 확정합니다.</span>
+</div>
+</div>
+</div>
+
+<!-- MCU 비교표 -->
+<div class="bg-surface-container-lowest rounded-3xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full min-w-[860px] text-left font-body-sm text-body-sm">
+<thead class="bg-primary-container text-surface">
+<tr>
+<th class="px-space-md py-space-md font-semibold">MCU 후보</th>
+<th class="px-space-md py-space-md font-semibold">무선 없음</th>
+<th class="px-space-md py-space-md font-semibold">3.3V 로직</th>
+<th class="px-space-md py-space-md font-semibold">개발 편의</th>
 <th class="px-space-md py-space-md font-semibold">대략 가격</th>
-<th class="px-space-md py-space-md font-semibold">전압 · 전력</th>
-<th class="px-space-md py-space-md font-semibold">장점</th>
-<th class="px-space-md py-space-md font-semibold">걸리는 점</th>
 <th class="px-space-md py-space-md font-semibold">결론</th>
 </tr>
 </thead>
 <tbody class="divide-y divide-outline-variant/50 align-top">
 <tr class="bg-[#ECFDF5]">
-<td class="px-space-md py-space-md font-bold text-on-surface">Jetson Orin Nano Super (현재)</td>
-<td class="px-space-md py-space-md whitespace-nowrap">약 $249</td>
-<td class="px-space-md py-space-md">DC 7~20V, 7~25W</td>
-<td class="px-space-md py-space-md">지금 코드(ultralytics, TensorRT) 그대로, 하드웨어 디코더</td>
-<td class="px-space-md py-space-md">—</td>
-<td class="px-space-md py-space-md font-bold text-[#065F46]">유지</td>
+<td class="px-space-md py-space-md font-bold text-on-surface">Raspberry Pi Pico (RP2040)<br/><span class="font-normal text-on-surface-variant">또는 Pico 2 (RP2350)</span></td>
+<td class="px-space-md py-space-md">◎</td>
+<td class="px-space-md py-space-md">◎ Jetson과 바로 연결</td>
+<td class="px-space-md py-space-md">◎ USB로 끌어다 놓으면 펌웨어 설치</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $4~5</td>
+<td class="px-space-md py-space-md font-bold text-[#065F46]">채택</td>
 </tr>
 <tr>
-<td class="px-space-md py-space-md font-semibold">RK3588 보드<br/><span class="font-normal text-on-surface-variant">Orange Pi 5, ROCK 5B 등</span></td>
-<td class="px-space-md py-space-md whitespace-nowrap">약 $100~150</td>
-<td class="px-space-md py-space-md">5V/12V USB-C PD, 10~20W</td>
-<td class="px-space-md py-space-md">NPU 6 TOPS, 1080p 다채널 동시 디코딩, RKNN 내보내기 지원</td>
-<td class="px-space-md py-space-md">NPU 성능이 낮아 해상도·fps 조절 필요할 수 있음</td>
-<td class="px-space-md py-space-md">비용 절감 1순위 대안</td>
+<td class="px-space-md py-space-md font-semibold">ESP32-C3</td>
+<td class="px-space-md py-space-md text-[#991B1B]">✕ Wi-Fi · BLE 내장</td>
+<td class="px-space-md py-space-md">◎</td>
+<td class="px-space-md py-space-md">○</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $5</td>
+<td class="px-space-md py-space-md">무선 때문에 점검 대상이 늘어남</td>
 </tr>
 <tr>
-<td class="px-space-md py-space-md font-semibold">라즈베리파이 5 + AI HAT+<br/><span class="font-normal text-on-surface-variant">Hailo-8, 26 TOPS</span></td>
-<td class="px-space-md py-space-md whitespace-nowrap">약 $190</td>
-<td class="px-space-md py-space-md">5V 5A USB-C, 10~15W</td>
-<td class="px-space-md py-space-md">yolov8n 추론 속도는 충분</td>
-<td class="px-space-md py-space-md">다채널 디코딩에 약함, HEF 변환을 x86 PC에서 해야 함</td>
-<td class="px-space-md py-space-md">카메라 2~3대 역만</td>
+<td class="px-space-md py-space-md font-semibold">STM32 (Nucleo 등)</td>
+<td class="px-space-md py-space-md">◎</td>
+<td class="px-space-md py-space-md">◎</td>
+<td class="px-space-md py-space-md">△ 개발 환경 설정이 번거로움</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $5~15</td>
+<td class="px-space-md py-space-md">산업용 대안</td>
 </tr>
 <tr>
-<td class="px-space-md py-space-md font-semibold">라즈베리파이 5 단독</td>
-<td class="px-space-md py-space-md whitespace-nowrap">약 $80</td>
-<td class="px-space-md py-space-md">5V 5A USB-C</td>
-<td class="px-space-md py-space-md">가장 저렴</td>
-<td class="px-space-md py-space-md">CPU로 초당 수 프레임 수준</td>
-<td class="px-space-md py-space-md text-[#991B1B]">불가</td>
-</tr>
-<tr>
-<td class="px-space-md py-space-md font-semibold">Coral USB 가속기</td>
-<td class="px-space-md py-space-md whitespace-nowrap">약 $60</td>
-<td class="px-space-md py-space-md">USB 5V</td>
-<td class="px-space-md py-space-md">—</td>
-<td class="px-space-md py-space-md">4 TOPS, YOLOv8 계열과 호환이 나쁨</td>
+<td class="px-space-md py-space-md font-semibold">Arduino Nano (ATmega328P)</td>
+<td class="px-space-md py-space-md">◎</td>
+<td class="px-space-md py-space-md text-[#991B1B]">✕ 5V, 레벨 변환 필요</td>
+<td class="px-space-md py-space-md">○</td>
+<td class="px-space-md py-space-md whitespace-nowrap">약 $5~25</td>
 <td class="px-space-md py-space-md text-[#991B1B]">제외</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p class="px-space-md py-space-sm font-body-sm text-body-sm text-on-surface-variant border-t border-outline-variant/50">라즈베리파이 5 + Hailo HAT에 쿨러·어댑터·SSD를 더하면 약 $200 이상이라 Jetson과 차이가 몇십 달러에 그칩니다. 가격은 대략값입니다.</p>
+<p class="px-space-md py-space-sm font-body-sm text-body-sm text-on-surface-variant border-t border-outline-variant/50">MCU는 하트비트 감시와 핀 제어만 하므로 성능보다 보안·신호 호환·개발 편의로 고릅니다. 네 후보 모두 내장 워치독이 있습니다.</p>
+</div>
+</div>
+</section>
+
+<!-- MCU 워치독 -->
+<section class="w-full bg-surface-container-low py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop" id="watchdog">
+<div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
+<div class="flex flex-col gap-space-xs max-w-3xl">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Hardware Watchdog</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg font-bold tracking-tight">Jetson이 멈추면 MCU가 되살립니다</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Linux는 커널·드라이버·메모리 부족으로 멈출 수 있지만, MCU는 구조가 단순해 거의 멈추지 않습니다. 이 시스템에는 모터가 없으므로 MCU에 맡길 "절대 죽으면 안 되는 일"은 <strong class="text-on-surface">SBC를 감시하고 되살리는 일</strong>입니다.</p>
+</div>
+
+<!-- 연결도 -->
+<div class="hw-diagram bg-surface-container-lowest rounded-3xl shadow-sm p-space-md md:p-space-lg flex flex-col gap-space-md">
+<div class="hw-legend flex flex-wrap gap-x-space-lg gap-y-space-xs font-body-sm text-body-sm" aria-label="범례">
+<span class="inline-flex items-center gap-space-sm"><i class="p"></i>전원</span>
+<span class="inline-flex items-center gap-space-sm"><i class="s"></i>제어 신호</span>
+</div>
+<div class="overflow-x-auto">
+<svg viewBox="0 0 1160 380" role="img" aria-label="기계실 콘센트에서 UPS와 19V 어댑터를 거친 전원이 상시 닫힘 릴레이를 지나 Jetson으로 들어간다. 릴레이 앞에서 갈라진 19V는 강압 모듈로 5V가 되어 MCU에 들어간다. MCU는 UART로 Jetson과 하트비트를 주고받고, 리셋 핀과 릴레이 코일을 제어한다. UPS는 USB로 Jetson에 정전을 알리고, 접점 신호만 있는 UPS라면 MCU가 받는다.">
+      <defs>
+        <marker id="w-a-power" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-power"/></marker>
+        <marker id="w-a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-muted"/></marker>
+      </defs>
+
+      <!-- MCU를 넣을 때만 추가되는 부분 -->
+      <rect class="zone" x="460" y="236" width="470" height="134" rx="10"/>
+      <text class="zone-t" x="474" y="258">MCU를 넣을 때만 추가</text>
+
+      <!-- 전원 경로 -->
+      <rect class="box" x="20" y="150" width="140" height="50" rx="6"/>
+      <text class="t" x="90" y="172" style="font-size:13px">기계실 콘센트</text>
+      <text class="st mono" x="90" y="190">AC 220V</text>
+      <line class="w-power" x1="160" y1="175" x2="198" y2="175" marker-end="url(#w-a-power)"/>
+
+      <rect class="box" x="200" y="150" width="140" height="50" rx="6"/>
+      <text class="t" x="270" y="172">UPS</text>
+      <text class="st" x="270" y="190">USB 신호 제품 우선</text>
+      <line class="w-power" x1="340" y1="175" x2="378" y2="175" marker-end="url(#w-a-power)"/>
+      <text class="lbl f-power" x="359" y="166">AC</text>
+
+      <rect class="box" x="380" y="150" width="140" height="50" rx="6"/>
+      <text class="t" x="450" y="180" style="font-size:13px">19V 어댑터</text>
+      <line class="w-power" x1="520" y1="175" x2="588" y2="175" marker-end="url(#w-a-power)"/>
+      <text class="lbl f-power" x="572" y="166">19V</text>
+
+      <rect class="box" x="590" y="150" width="150" height="50" rx="6"/>
+      <text class="t" x="665" y="172">릴레이 (NC)</text>
+      <text class="st" x="665" y="190">평소 닫힘 · 전원 통과</text>
+      <line class="w-power" x1="740" y1="175" x2="818" y2="175" marker-end="url(#w-a-power)"/>
+      <text class="lbl f-power" x="779" y="166">19V</text>
+
+      <rect class="box" x="820" y="120" width="320" height="100" rx="6"/>
+      <text class="t" x="980" y="150">Jetson Orin Nano (SBC)</text>
+      <text class="st" x="980" y="170">vision · broker · uplink · watchdog 컨테이너</text>
+      <text class="st mono" x="980" y="190">40핀 UART · 리셋 핀</text>
+
+      <!-- UPS → Jetson (USB) -->
+      <path class="w-sig" d="M270 150 V90 H1040 V118" marker-end="url(#w-a-muted)"/>
+      <text class="cap" x="655" y="82" text-anchor="middle">정전 시 안전 종료 (USB · NUT) — MCU 없이도 동작</text>
+
+      <!-- 릴레이 앞에서 갈라져 강압 → MCU -->
+      <circle cx="555" cy="175" r="4" class="f-power"/>
+      <line class="w-power" x1="555" y1="175" x2="555" y2="278" marker-end="url(#w-a-power)"/>
+      <rect class="box" x="480" y="280" width="150" height="46" rx="6"/>
+      <text class="t" x="555" y="300" style="font-size:13px">강압 모듈</text>
+      <text class="st mono" x="555" y="317">19V → 5V</text>
+      <line class="w-power" x1="630" y1="303" x2="698" y2="303" marker-end="url(#w-a-power)"/>
+      <text class="lbl f-power" x="664" y="295">5V</text>
+
+      <rect class="box" x="700" y="270" width="210" height="84" rx="6"/>
+      <text class="t" x="805" y="296">MCU · RP2040</text>
+      <text class="st" x="805" y="316">하트비트 감시 · 리셋 · 재투입</text>
+      <text class="st mono" x="805" y="334">3.3V 로직 · 무선 없음</text>
+
+      <!-- MCU → 릴레이 코일 -->
+      <path class="w-sig" d="M720 270 V202" marker-end="url(#w-a-muted)"/>
+      <text class="cap" x="712" y="236" text-anchor="end">전원 끊기</text>
+
+      <!-- MCU ↔ Jetson -->
+      <path class="w-sig" d="M870 270 V222" marker-end="url(#w-a-muted)"/>
+      <text class="cap" x="862" y="250" text-anchor="end">리셋</text>
+      <path class="w-sig" d="M910 312 H1040 V222" marker-start="url(#w-a-muted)" marker-end="url(#w-a-muted)"/>
+      <text class="cap" x="1048" y="290" text-anchor="start">UART</text>
+      <text class="cap" x="1048" y="306" text-anchor="start">하트비트</text>
+
+      <!-- UPS 접점 → MCU -->
+      <path class="w-sig" d="M240 200 V344 H698" marker-end="url(#w-a-muted)"/>
+      <text class="cap" x="250" y="336" text-anchor="start">정전 신호 (UPS가 접점 신호만 줄 때)</text>
+</svg>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-[85ch]">MCU 전원은 <strong class="text-on-surface">릴레이 앞에서</strong> 받습니다. Jetson 전원을 끊어도 MCU는 켜져 있어야 다시 켤 수 있기 때문입니다. 릴레이는 <strong class="text-on-surface">상시 닫힘(NC)</strong>이라 MCU가 고장 나거나 꺼져도 Jetson 전원은 유지됩니다. 핀 위치·전류는 데이터시트로 다시 확인합니다.</p>
+</div>
+
+<!-- 단계별 복구 -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<div class="lg:col-span-7 bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<span class="font-headline-sm text-headline-sm font-bold">가벼운 방법부터, 안 되면 다음 단계로</span>
+<ol class="flex flex-col gap-space-sm font-body-md text-body-md">
+<li class="flex items-start gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-primary-container text-surface flex items-center justify-center text-xs font-bold">1</span><span><strong>컨테이너 하나가 죽음</strong> <span class="text-on-surface-variant">— Docker가 그 컨테이너만 재시작</span></span></li>
+<li class="flex items-start gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-primary-container text-surface flex items-center justify-center text-xs font-bold">2</span><span><strong>Docker 전체가 응답 없음</strong> <span class="text-on-surface-variant">— watchdog 컨테이너가 하트비트를 멈춤</span></span></li>
+<li class="flex items-start gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-primary-container text-surface flex items-center justify-center text-xs font-bold">3</span><span><strong>Linux 커널 멈춤</strong> <span class="text-on-surface-variant">— Jetson 내장 워치독이 리셋</span></span></li>
+<li class="flex items-start gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-on-tertiary-container text-surface flex items-center justify-center text-xs font-bold">4</span><span><strong>하트비트 3분 넘게 없음</strong> <span class="text-on-surface-variant">— MCU가 리셋 핀을 잠깐 당김</span></span></li>
+<li class="flex items-start gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-on-tertiary-container text-surface flex items-center justify-center text-xs font-bold">5</span><span><strong>리셋 뒤 5분 안에 안 돌아옴</strong> <span class="text-on-surface-variant">— MCU가 릴레이로 19V를 10초 끊었다 다시 연결</span></span></li>
+<li class="flex items-start gap-space-sm"><span class="w-6 h-6 shrink-0 rounded-full bg-error text-surface flex items-center justify-center text-xs font-bold">6</span><span><strong>5단계를 3번 해도 실패</strong> <span class="text-on-surface-variant">— 더 반복하지 않고 대기, 현장 점검 대상 (부품 손상 방지)</span></span></li>
+</ol>
+<p class="font-body-sm text-body-sm text-on-surface-variant">리셋·전원 재투입 횟수는 다음 부팅 때 MCU가 Jetson에 알리고, 상태 정보에 실려 클라우드로 갑니다. 시간 값은 vision 재시작·TensorRT 엔진 로드 실측으로 조정합니다.</p>
+</div>
+<div class="lg:col-span-5 flex flex-col gap-gutter">
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<span class="material-symbols-outlined text-[28px] text-on-tertiary-container">favorite</span>
+<span class="font-headline-sm text-headline-sm font-bold">하트비트 = 앱이 살아 있음</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Linux가 살아 있다는 것만으로는 보내지 않습니다. broker에 붙어 있고 uplink가 응답할 때만 watchdog 컨테이너가 보냅니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<span class="material-symbols-outlined text-[28px] text-on-tertiary-container">videocam_off</span>
+<span class="font-headline-sm text-headline-sm font-bold">카메라 하나로는 끊지 않음</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">카메라 하나 때문에 박스를 재시작하면 나머지 9대의 카운트까지 빠집니다. 카메라 문제는 Docker 재시작과 클라우드 알림으로 처리합니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<span class="material-symbols-outlined text-[28px] text-[#F59E0B]">info</span>
+<span class="font-headline-sm text-headline-sm font-bold">MCU는 필수가 아닙니다</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">시범 운영은 Jetson 내장 워치독 + Docker 재시작으로 시작합니다. 원격으로 못 살린 일이 생기거나 UPS가 접점 신호만 줄 때 MCU를 넣습니다.</span>
+</div>
+</div>
 </div>
 </div>
 </section>
 
 <!-- 추론 엔진 -->
-<section class="w-full bg-surface-container-low py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop" id="runtime">
+<section class="w-full bg-surface py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop" id="runtime">
 <div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
 <div class="flex flex-col gap-space-xs max-w-3xl">
 <span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Inference Engine</span>
@@ -638,6 +897,193 @@
 </div>
 </section>
 
+<!-- 컨테이너 구성 -->
+<section class="w-full bg-surface-container-low py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop" id="containers">
+<div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
+<div class="flex flex-col gap-space-xs max-w-3xl">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Containers</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg font-bold tracking-tight">박스 안은 컨테이너 4개로 나눕니다</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">나누는 기준은 <strong class="text-on-surface">영상 프레임이 컨테이너 밖으로 나가지 않는 것</strong>입니다. 디코딩부터 1분 집계까지는 한 컨테이너 메모리 안에서 끝내고, 컨테이너 사이에는 숫자와 명령만 오갑니다.</p>
+</div>
+
+<!-- 구성도 -->
+<div class="hw-diagram bg-surface-container-lowest rounded-3xl shadow-sm p-space-md md:p-space-lg flex flex-col gap-space-md">
+<div class="hw-legend flex flex-wrap gap-x-space-lg gap-y-space-xs font-body-sm text-body-sm" aria-label="범례">
+<span class="inline-flex items-center gap-space-sm"><i class="v"></i>영상 (RTSP)</span>
+<span class="inline-flex items-center gap-space-sm"><i class="c"></i>인원 수 · 상태 (MQTT)</span>
+<span class="inline-flex items-center gap-space-sm"><i class="s"></i>명령 · 하트비트</span>
+</div>
+<div class="overflow-x-auto">
+<svg viewBox="0 0 1160 470" role="img" aria-label="IP 카메라 10대의 영상은 vision 컨테이너로만 들어가고 그 안에서 끝난다. vision은 1분 집계와 상태를 broker로 보내고, broker는 이를 uplink와 watchdog에 넘긴다. uplink는 인원 수를 AWS IoT Core로 보내고, 클라우드의 날씨 명령은 uplink와 broker를 거쳐 vision으로 내려온다. watchdog은 MCU에 하트비트를 보낸다.">
+      <defs>
+        <marker id="c-a-video" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-video"/></marker>
+        <marker id="c-a-count" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-count"/></marker>
+        <marker id="c-a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-muted"/></marker>
+      </defs>
+
+      <rect class="zone" x="196" y="20" width="800" height="430" rx="10"/>
+      <text class="zone-t" x="210" y="42">Jetson Orin Nano · Docker + NVIDIA Container Runtime</text>
+
+      <!-- 카메라 → vision -->
+      <rect class="stack" x="32" y="78" width="150" height="70" rx="6"/>
+      <rect class="stack" x="26" y="84" width="150" height="70" rx="6"/>
+      <rect class="box" x="20" y="90" width="150" height="70" rx="6"/>
+      <text class="t" x="95" y="120">IP 카메라 ×10</text>
+      <text class="st" x="95" y="140">PoE 스위치 경유</text>
+      <line class="w-video" x1="170" y1="125" x2="228" y2="125" marker-end="url(#c-a-video)"/>
+      <text class="lbl f-video" x="199" y="115">RTSP</text>
+
+      <!-- ① vision -->
+      <rect class="box" x="230" y="60" width="330" height="160" rx="6"/>
+      <text class="t" x="395" y="88">① vision</text>
+      <text class="st" x="395" y="110">디코딩 → 전처리 → YOLO → 추적 → 카운팅</text>
+      <text class="st" x="395" y="130">→ 1분 집계 · scripts/run.py</text>
+      <text class="st mono" x="395" y="156">runtime: nvidia · read_only · mem_limit</text>
+      <text class="st mono" x="395" y="174">restart: on-failure</text>
+      <text class="lbl f-video" x="395" y="204">프레임은 여기서 끝 · 저장·전송 없음</text>
+
+      <!-- vision ↔ broker -->
+      <line class="w-count" x1="330" y1="220" x2="330" y2="298" marker-end="url(#c-a-count)"/>
+      <text class="cap" x="322" y="256" text-anchor="end">minute</text>
+      <text class="cap" x="322" y="272" text-anchor="end">health</text>
+      <path class="w-sig" d="M460 298 V222" marker-end="url(#c-a-muted)"/>
+      <text class="cap" x="468" y="246" text-anchor="start">cmd/weather</text>
+
+      <!-- ② broker -->
+      <rect class="box" x="230" y="300" width="330" height="90" rx="6"/>
+      <text class="t" x="395" y="330">② broker · Mosquitto</text>
+      <text class="st" x="395" y="350">박스 내부 전용 · 외부 포트 안 열음</text>
+      <text class="st mono" x="395" y="370">restart: always</text>
+
+      <!-- broker → uplink / watchdog -->
+      <line class="w-count" x1="560" y1="330" x2="638" y2="330" marker-end="url(#c-a-count)"/>
+      <path class="w-sig" d="M640 365 H562" marker-end="url(#c-a-muted)"/>
+      <path class="w-count" d="M530 300 V260 H600 V110 H638" marker-end="url(#c-a-count)"/>
+      <text class="cap" x="606" y="190" text-anchor="start">health</text>
+
+      <!-- ③ uplink -->
+      <rect class="box" x="640" y="290" width="330" height="110" rx="6"/>
+      <text class="t" x="805" y="318">③ uplink</text>
+      <text class="st" x="805" y="338">로컬 MQTT ↔ AWS IoT Core</text>
+      <text class="st" x="805" y="356">끊기면 디스크 큐에 쌓았다 재전송 (숫자만)</text>
+      <text class="st mono" x="805" y="380">restart: always · 잃으면 안 되는 구역</text>
+
+      <!-- ④ watchdog -->
+      <rect class="box" x="640" y="70" width="330" height="80" rx="6"/>
+      <text class="t" x="805" y="98">④ watchdog (선택)</text>
+      <text class="st" x="805" y="118">상태 감시 · 앱이 살아 있을 때만 하트비트</text>
+      <text class="st mono" x="805" y="136">restart: always</text>
+
+      <!-- 박스 밖 -->
+      <rect class="box" x="1020" y="80" width="130" height="60" rx="6"/>
+      <text class="t" x="1085" y="106">MCU (선택)</text>
+      <text class="st" x="1085" y="125">RP2040</text>
+      <line class="w-sig" x1="970" y1="110" x2="1018" y2="110" marker-end="url(#c-a-muted)"/>
+      <text class="cap" x="994" y="100" text-anchor="middle">UART</text>
+
+      <rect class="box" x="1020" y="300" width="130" height="60" rx="30"/>
+      <text class="t" x="1085" y="326">AWS IoT Core</text>
+      <text class="st" x="1085" y="344">클라우드</text>
+      <line class="w-count" x1="970" y1="320" x2="1018" y2="320" marker-end="url(#c-a-count)"/>
+      <text class="cap mono" x="994" y="310" text-anchor="middle">TLS</text>
+      <path class="w-sig" d="M1020 345 H972" marker-end="url(#c-a-muted)"/>
+      <text class="cap" x="1085" y="384" text-anchor="middle">날씨 명령</text>
+
+      <text class="cap" x="596" y="432" text-anchor="middle">컨테이너 사이에는 숫자와 명령만 · privileged 컨테이너 없음</text>
+</svg>
+</div>
+</div>
+
+<!-- 컨테이너 카드 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between"><span class="material-symbols-outlined text-[28px] text-on-tertiary-container">visibility</span><span class="font-label-caps text-label-caps px-2 py-1 rounded-full bg-[#FEF3C7] text-[#92400E]">죽어도 되는 구역</span></div>
+<span class="font-headline-sm text-headline-sm font-bold">① vision</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">지금 코드 그대로. 디코딩과 추론을 같은 컨테이너에 둡니다. 나누면 프레임 초당 약 70MB가 컨테이너 사이를 오가야 합니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between"><span class="material-symbols-outlined text-[28px] text-on-tertiary-container">hub</span><span class="font-label-caps text-label-caps px-2 py-1 rounded-full bg-surface-container text-secondary">시스템의 척추</span></div>
+<span class="font-headline-sm text-headline-sm font-bold">② broker</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">박스 안 컨테이너끼리만 쓰는 MQTT 브로커. 메모리 수 MB. 다른 컨테이너가 모두 여기에 기댑니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between"><span class="material-symbols-outlined text-[28px] text-[#10B981]">cloud_upload</span><span class="font-label-caps text-label-caps px-2 py-1 rounded-full bg-[#ECFDF5] text-[#065F46]">잃으면 안 되는 구역</span></div>
+<span class="font-headline-sm text-headline-sm font-bold">③ uplink</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">vision이 메모리 부족으로 죽어도 이미 집계된 숫자와 전송 큐는 살아 있습니다. 인증서는 환경 변수·읽기 전용 볼륨으로 받습니다.</span>
+</div>
+<div class="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between"><span class="material-symbols-outlined text-[28px] text-on-tertiary-container">monitor_heart</span><span class="font-label-caps text-label-caps px-2 py-1 rounded-full bg-surface-container text-secondary">선택</span></div>
+<span class="font-headline-sm text-headline-sm font-bold">④ watchdog</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">상태가 끊긴 카메라를 찾아 알리고, MCU를 넣으면 하트비트를 보냅니다. 처음엔 Docker healthcheck로 대신해도 됩니다.</span>
+</div>
+</div>
+
+<!-- 예시(로봇)와 다른 점 -->
+<div class="bg-surface-container-lowest rounded-3xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full min-w-[820px] text-left font-body-sm text-body-sm">
+<thead class="bg-primary-container text-surface">
+<tr>
+<th class="px-space-md py-space-md font-semibold">항목</th>
+<th class="px-space-md py-space-md font-semibold">일반적인 로봇 구성</th>
+<th class="px-space-md py-space-md font-semibold">FlowSight 엣지 박스</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/50 align-top">
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">하드웨어 접근</td>
+<td class="px-space-md py-space-md">GPIO · CSI · 모터 드라이버 → privileged / --device</td>
+<td class="px-space-md py-space-md">카메라는 네트워크로 받음 → <strong>privileged 없음</strong>, GPU만 runtime: nvidia</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">절대 죽으면 안 되는 곳</td>
+<td class="px-space-md py-space-md">모터 제어 · 비상정지 (사람 안전)</td>
+<td class="px-space-md py-space-md"><strong>uplink</strong> (집계 숫자를 잃지 않기). 박스 전체 복구는 MCU</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">죽어도 되는 곳</td>
+<td class="px-space-md py-space-md">AI 추론</td>
+<td class="px-space-md py-space-md"><strong>vision</strong> (재시작 동안 그 분의 카운트만 빠짐)</td>
+</tr>
+<tr>
+<td class="px-space-md py-space-md font-semibold whitespace-nowrap">컨테이너 사이 데이터</td>
+<td class="px-space-md py-space-md">카메라 · IMU 원본</td>
+<td class="px-space-md py-space-md"><strong>숫자와 명령만</strong>. 영상은 개인정보 원칙상 컨테이너 밖으로 보내지 않음</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- 개인정보 장치 + 카메라 묶기 -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<div class="lg:col-span-7 bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<span class="font-headline-sm text-headline-sm font-bold flex items-center gap-space-xs"><span class="material-symbols-outlined text-[22px] text-[#10B981]">lock</span>설정으로 막는 개인정보 · 보안</span>
+<ul class="flex flex-col gap-space-xs font-body-md text-body-md text-on-surface-variant">
+<li>· <strong class="text-on-surface">vision은 읽기 전용</strong> — 쓰기 볼륨이 없어 코드 실수가 있어도 프레임을 저장할 수 없습니다</li>
+<li>· <strong class="text-on-surface">broker 외부 포트 없음</strong> — 박스 밖에서 내부 토픽을 엿보거나 명령을 넣을 수 없습니다</li>
+<li>· <strong class="text-on-surface">인터넷으로 나가는 것은 uplink뿐</strong> — vision의 외부 접속은 호스트 방화벽으로 카메라 대역만 허용합니다</li>
+<li>· <strong class="text-on-surface">privileged · --device 없음</strong> — 컨테이너가 뚫려도 호스트 장치에 닿기 어렵습니다 (MCU용 UART만 watchdog에 넘김)</li>
+<li>· <strong class="text-on-surface">비밀값은 .env · 인증서 볼륨으로만</strong> — Git과 이미지에 키가 들어가지 않습니다</li>
+</ul>
+</div>
+<div class="lg:col-span-5 bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<span class="font-headline-sm text-headline-sm font-bold">카메라 10대는 컨테이너 몇 개로?</span>
+<div class="flex flex-col gap-space-xs">
+<span class="font-body-md text-body-md font-bold">A. 카메라마다 컨테이너</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">지금 코드 그대로, 하나가 죽어도 나머지는 무사. 대신 모델·CUDA를 10번 올려 8GB 공유 메모리가 모자랄 수 있습니다.</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<span class="font-body-md text-body-md font-bold">B. 컨테이너 하나에 여러 대</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">모델을 한 번만 올리고 배치 추론. 여러 카메라를 받는 실행 스크립트가 새로 필요합니다.</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface bg-surface-container-low rounded-2xl p-space-md"><strong>권장</strong> — A로 2~3대 띄워 메모리를 재고, 10대에서 모자라면 B(3~4대씩 묶은 컨테이너 2~3개)로 갑니다.</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">아직 Jetson에서 띄워 보기 전입니다. 전체 내용은 저장소의 <code class="px-1 rounded bg-surface-container">report/container.md</code>, <code class="px-1 rounded bg-surface-container">report/mcu_sbc.md</code>, <code class="px-1 rounded bg-surface-container">report/parts_selection.md</code>에 있습니다.</p>
+</div>
+</section>
+
 <!-- 확인 필요 항목 -->
 <section class="w-full bg-surface py-space-xxl px-margin-mobile md:px-margin lg:px-margin-desktop">
 <div class="max-w-[1280px] mx-auto w-full flex flex-col gap-space-xl">
@@ -651,6 +1097,10 @@
 <li>· Jetson Orin Nano의 동시 디코딩 채널 수 (데이터시트)</li>
 <li>· 후보 부품의 실제 판매 가격</li>
 <li>· ONNX Runtime(TensorRT 실행 공급자)과 TensorRT 직접 실행의 Jetson 실측 속도</li>
+<li>· 현장용 산업 캐리어 보드 견적 (동작 온도, 입력 전압, 40핀·리셋 핀)</li>
+<li>· vision 컨테이너 1개의 메모리 사용량 → 카메라마다 컨테이너로 몇 대까지 되는지</li>
+<li>· UPS 정전 신호 방식 (USB인지 접점인지)</li>
+<li>· 시범 운영 중 원격 복구 실패 횟수 → MCU 도입 여부</li>
 </ul>
 <p class="font-body-sm text-body-sm text-on-surface-variant pt-space-xs">배선 공사비는 PRD의 초기 투자 9억 원에 포함되지 않았습니다. 전체 내용은 저장소의 <code class="px-1 rounded bg-surface-container-low">report/hardware.md</code>에 있습니다.</p>
 </div>
