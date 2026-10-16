@@ -45,6 +45,9 @@ SOURCES = [
     "report/checklist.md",
     "report/hardware.md",
     "report/inference_engine.md",
+    "report/parts_selection.md",
+    "report/mcu_sbc.md",
+    "report/container.md",
     "index.html",
     "docs.html",
     "hardware.html",
@@ -75,6 +78,9 @@ CATEGORIES = {
     "docs.html": "model",
     "report/hardware.md": "hardware",
     "report/inference_engine.md": "hardware",  # Jetson에서 YOLO를 돌릴 엔진. 하드웨어 페이지에 요약이 있다
+    "report/parts_selection.md": "hardware",  # SBC·MCU 부품 선정
+    "report/mcu_sbc.md": "hardware",  # MCU 워치독과 SBC 역할 나누기
+    "report/container.md": "hardware",  # Jetson 안 컨테이너 구성. 하드웨어 페이지에 요약이 있다
     "hardware.html": "hardware",
     "report/checklist.md": "field",
     "index.html": "website",
