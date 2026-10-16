@@ -41,6 +41,9 @@
     "report/checklist.md": "현장 조사 가이드",
     "report/hardware.md": "하드웨어",
     "report/inference_engine.md": "추론 엔진",
+    "report/parts_selection.md": "SBC·MCU 부품 선정",
+    "report/mcu_sbc.md": "MCU·SBC 역할",
+    "report/container.md": "컨테이너 구성",
     "hardware.html": "하드웨어 페이지",
   };
 
